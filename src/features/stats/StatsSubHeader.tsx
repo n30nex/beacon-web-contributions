@@ -58,6 +58,7 @@ const TAB_OPTIONS = [
   { value: "mesh", label: "Mesh", icon: <MeshIcon /> },
   { value: "traffic", label: "Traffic", icon: <MeshIcon /> },
   { value: "signal", label: "RF / Signal", icon: <ObserverIcon /> },
+  { value: "paths", label: "Paths & Hashes", icon: <GraphIcon /> },
   { value: "scopes", label: "Scopes", icon: <GraphIcon /> },
   { value: "talkers", label: "Talkers", icon: <TalkersIcon /> },
   { value: "clockdrift", label: "Clock Drift", icon: <ClockDriftIcon /> },
