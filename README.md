@@ -12,6 +12,12 @@ Built with React 19, TypeScript, Tailwind CSS 4, TanStack Query, and TanStack Vi
 bars, received-signal meters, and expandable observer evidence. Selections persist
 in the visitor's browser; English and French are supported.
 
+## Experimental n30nex-test branch
+
+This branch combines pinned route-evidence links and My Atlas for the Pi preview.
+It is experimental; the 1.4.0 release policy below still excludes Atlas from the
+stable release. No review or production promotion is requested for this branch.
+
 ## Deployment
 
 ### Beacon 1.4.0 release
