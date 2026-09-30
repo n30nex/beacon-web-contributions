@@ -397,6 +397,7 @@
       "title": "Rapports conservés",
       "window": "Période",
       "shared": "Période partagée",
+      "invalidPath": "Chemin partagé invalide. Rouvrez le trajet pour utiliser sa représentation actuelle.",
       "invalid": "Période partagée invalide. Choisissez une période pour continuer.",
       "loading": "Chargement des rapports conservés…",
       "missing": "Le trajet enregistré ou l’API des rapports est indisponible sur ce serveur.",

@@ -23,15 +23,20 @@ export function RouteEvidencePanel({ iata, pathKey, onClose, onAnalyzePacket, on
   const [openedAt] = useState(Date.now);
   const range = params.get("routeRange") === "7d" ? "7d" : params.get("routeRange") === "30d" ? "30d" : "24h";
   const rawSince = params.get("routeSince"), rawUntil = params.get("routeUntil");
+  const rawWidth = params.get("routeHashSize"), rawPath = params.get("routePathBytes");
+  const pinnedPath = rawWidth !== null || rawPath !== null;
+  const width = Number(rawWidth);
+  const invalidPath = pinnedPath && (params.getAll("routeHashSize").length !== 1 || params.getAll("routePathBytes").length !== 1 || !rawWidth || !/^[1-3]$/.test(rawWidth) || !rawPath || !/^[0-9a-f]+$/.test(rawPath) || rawPath.length < 4 * width || rawPath.length > 126 * width || rawPath.length % (2 * width) !== 0);
+  const pathParams = pinnedPath && !invalidPath ? { hashSize: width, pathBytes: rawPath! } : {};
   const fixed = rawSince !== null || rawUntil !== null;
   const since = Number(rawSince), until = Number(rawUntil);
   const invalid = fixed && (!rawSince || !rawUntil || !/^\d+$/.test(rawSince) || !/^\d+$/.test(rawUntil) || !Number.isSafeInteger(since) || !Number.isSafeInteger(until) || until <= since || until > openedAt || until - since > 30 * 86400000);
   const query = useInfiniteQuery({
-    queryKey: ["route-evidence", iata, pathKey, range, rawSince, rawUntil],
-    queryFn: ({ pageParam, signal }) => getRouteEvidence(iata, pathKey, pageParam ? { pageCursor: pageParam, limit: 50 } : fixed ? { since, until, limit: 50 } : { range: range === "7d" ? "168h" : range === "30d" ? "720h" : "24h", limit: 50 }, signal),
+    queryKey: ["route-evidence", iata, pathKey, range, rawSince, rawUntil, rawWidth, rawPath],
+    queryFn: ({ pageParam, signal }) => getRouteEvidence(iata, pathKey, pageParam ? { pageCursor: pageParam, limit: 50 } : fixed ? { since, until, ...pathParams, limit: 50 } : { range: range === "7d" ? "168h" : range === "30d" ? "720h" : "24h", ...pathParams, limit: 50 }, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last, pages) => pages.length < 10 && last.hasMore ? last.nextPageCursor : undefined,
-    enabled: !invalid,
+    enabled: !invalid && !invalidPath,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     retry: false,
@@ -39,14 +44,14 @@ export function RouteEvidencePanel({ iata, pathKey, onClose, onAnalyzePacket, on
   const first = query.data?.pages[0];
   const reports = query.data?.pages.flatMap(page => page.items) ?? [];
   const capped = (query.data?.pages.length ?? 0) >= 10 && query.data?.pages.at(-1)?.hasMore;
-  return <DetailPanel title={t("routeEvidence.title")} onClose={onClose} closeLabel={t("routeEvidence.close")} headerAction={first && <CopyLinkButton label={t("investigation.copy")} copiedLabel={t("observerPage.copied")} params={() => ({ tab: "Routes", route: pathKey, routeIata: iata, routeRange: range, routeSince: String(first.windowStart), routeUntil: String(first.windowEnd), hash: null, analyze: null, observation: null, path: null, observer: null, node: null })} />}>
+  return <DetailPanel title={t("routeEvidence.title")} onClose={onClose} closeLabel={t("routeEvidence.close")} headerAction={first && <CopyLinkButton label={t("investigation.copy")} copiedLabel={t("observerPage.copied")} params={() => ({ tab: "Routes", route: pathKey, routeIata: iata, routeRange: range, routeSince: String(first.windowStart), routeUntil: String(first.windowEnd), routeHashSize: first.matchAvailable && first.hashSize && first.pathBytes ? String(first.hashSize) : null, routePathBytes: first.matchAvailable && first.hashSize && first.pathBytes ? first.pathBytes : null, hash: null, analyze: null, observation: null, path: null, observer: null, node: null })} />}>
     <Section title={t("routeEvidence.window")} first>
-      <Segmented ariaLabel={t("routeEvidence.window")} value={fixed ? "" : range} options={[{ value: "24h", label: t("stats.ranges.24h") }, { value: "7d", label: t("stats.ranges.7d") }, { value: "30d", label: t("stats.ranges.30d") }]} onChange={value => setParams(previous => { const next = new URLSearchParams(previous); next.set("routeRange", value); next.delete("routeSince"); next.delete("routeUntil"); return next; })} />
+      <Segmented ariaLabel={t("routeEvidence.window")} value={fixed ? "" : range} options={[{ value: "24h", label: t("stats.ranges.24h") }, { value: "7d", label: t("stats.ranges.7d") }, { value: "30d", label: t("stats.ranges.30d") }]} onChange={value => setParams(previous => { const next = new URLSearchParams(previous); next.set("routeRange", value); for (const key of ["routeSince", "routeUntil", "routeHashSize", "routePathBytes"]) next.delete(key); return next; })} />
       <p className="mt-2 text-xs text-text-muted">{t("observerCompare.retainedWindow")}</p>
       {fixed && <p className="mt-2 text-xs text-text-muted">{t("routeEvidence.shared")}</p>}
       {first && <p className="mt-2 text-xs leading-relaxed text-text-normal">{formatUtc(first.windowStart, { seconds: true })} → {formatUtc(first.windowEnd, { seconds: true })} UTC</p>}
     </Section>
-    {invalid ? <p role="alert" className="p-3 text-sm text-warn">{t("routeEvidence.invalid")}</p> : query.isPending ? <p role="status" className="p-3 text-sm text-text-muted">{t("routeEvidence.loading")}</p> : <>
+    {invalid || invalidPath ? <p role="alert" className="p-3 text-sm text-warn">{t(invalidPath ? "routeEvidence.invalidPath" : "routeEvidence.invalid")}</p> : query.isPending ? <p role="status" className="p-3 text-sm text-text-muted">{t("routeEvidence.loading")}</p> : <>
       {query.isError && <div role="alert" className="p-3 space-y-2 text-sm text-warn"><p>{t(isNotFound(query.error) ? "routeEvidence.missing" : "routeEvidence.error")}</p><button className={ACTION_BUTTON_CLASS} onClick={() => query.isFetchNextPageError ? void query.fetchNextPage() : void query.refetch()}>{t("routeEvidence.retry")}</button></div>}
       {first && <>
         <Section title={`${t("routeEvidence.savedPath")} · ${first.route.iata}`}>

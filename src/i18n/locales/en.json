@@ -393,6 +393,7 @@
       "title": "Retained reports",
       "window": "Time window",
       "shared": "Shared time window",
+      "invalidPath": "Invalid shared path. Open the route again to use its current representation.",
       "invalid": "Invalid shared time window. Choose a range to continue.",
       "loading": "Loading retained reports…",
       "missing": "The saved route or evidence API is unavailable on this server.",

@@ -16,7 +16,7 @@ describe("observerDestination", () => {
   });
 
   it("drops unrelated investigation selectors and defaults the range to 7d", () => {
-    const p = observerDestination(new URLSearchParams("hash=abc&analyze=1&node=n&path=p"), "b");
+    const p = observerDestination(new URLSearchParams("hash=abc&analyze=1&node=n&path=p&routeHashSize=1&routePathBytes=aabb"), "b");
     expect(p.toString()).toBe("tab=Observers&observer=b&range=7d");
   });
 

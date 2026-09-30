@@ -153,7 +153,7 @@ export function RouteTable(actions: RouteActions) {
     // no-op when nothing is open, so callers (e.g. the region-change effect) can call it unconditionally
     if (!pathKey && !selectedKey) return;
     setSelectedKey(null);
-    setParams(previous => { const next = new URLSearchParams(previous); for (const key of ["route", "routeIata", "routeRange", "routeSince", "routeUntil"]) next.delete(key); return next; }, { replace: true });
+    setParams(previous => { const next = new URLSearchParams(previous); for (const key of ["route", "routeIata", "routeRange", "routeSince", "routeUntil", "routeHashSize", "routePathBytes"]) next.delete(key); return next; }, { replace: true });
   }, [pathKey, selectedKey, setParams]);
 
 
@@ -240,7 +240,7 @@ export function RouteTable(actions: RouteActions) {
     const route = rows?.find(row => String(row.id) === id);
     if (route?.pathKey) {
       setSelectedKey(null);
-      setParams(previous => { const next = new URLSearchParams(previous); next.set("route", route.pathKey!); next.set("routeIata", route.iata); next.delete("routeSince"); next.delete("routeUntil"); return next; }, { replace: true });
+      setParams(previous => { const next = new URLSearchParams(previous); next.set("route", route.pathKey!); next.set("routeIata", route.iata); for (const key of ["routeSince", "routeUntil", "routeHashSize", "routePathBytes"]) next.delete(key); return next; }, { replace: true });
     } else {
       closeRoute();
       setSelectedKey(id);
@@ -354,7 +354,7 @@ export function RouteTable(actions: RouteActions) {
             )}
           </div>
         )}
-        {pathKey && routeIata ? <RouteEvidencePanel key={[routeIata, pathKey, params.get("routeSince"), params.get("routeUntil")].join(":")} iata={routeIata} pathKey={pathKey} onClose={closeRoute} {...actions} /> : selectedRoute && (
+        {pathKey && routeIata ? <RouteEvidencePanel key={[routeIata, pathKey, params.get("routeSince"), params.get("routeUntil"), params.get("routeHashSize"), params.get("routePathBytes")].join(":")} iata={routeIata} pathKey={pathKey} onClose={closeRoute} {...actions} /> : selectedRoute && (
           <RouteDetailPanel route={selectedRoute} onClose={() => setSelectedKey(null)} />
         )}
       </div>

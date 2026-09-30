@@ -16,16 +16,46 @@ const page: RouteEvidence = {
   items: [{ id: 17, packetHash: "aabb", observerId: "o1", observerName: "Garden", heardAt: 1700000000001, payloadType: 2, payloadTypeName: "TXT_MSG", snr: 0 }], hasMore: true, nextPageCursor: "pinned-cursor",
 };
 const inspect = vi.fn(); const observer = vi.fn(); const node = vi.fn();
+const writeLink = vi.fn();
 function Harness() {
   const [params, set] = useSearchParams();
-  return <><button onClick={() => set({ route: "b".repeat(32) })}>Other route</button><output>{params.toString()}</output>
+  return <><button onClick={() => set({ route: "b".repeat(32) })}>Other route</button><button onClick={() => set(previous => { const next = new URLSearchParams(previous); next.set("routeHashSize", "2"); next.set("routePathBytes", "ab01cd02"); return next; })}>Other width</button><output>{params.toString()}</output>
     <RouteEvidencePanel iata="YOW" pathKey={params.get("route") ?? key} onClose={() => {}} onAnalyzePacket={inspect} onViewObserver={observer} onViewNode={node} /></>;
 }
 function mount(url = "/?tab=Routes") {
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={[url]}><Harness /></MemoryRouter></QueryClientProvider>);
 }
-beforeEach(() => { vi.clearAllMocks(); vi.mocked(getRouteEvidence).mockResolvedValue(page); });
+beforeEach(() => {
+  vi.clearAllMocks(); vi.mocked(getRouteEvidence).mockResolvedValue(page);
+  Object.defineProperty(navigator, "clipboard", { value: { writeText: writeLink }, configurable: true });
+});
 describe("retained route evidence", () => {
+  it("copies the displayed exact path and window, then loads that representation on return", async () => {
+    mount("/?routeSince=1700000000000&routeUntil=1700086400000&routeHashSize=1&routePathBytes=abcd");
+    await screen.findByText("Garden");
+    expect(getRouteEvidence).toHaveBeenCalledWith("YOW", key, { since: 1700000000000, until: 1700086400000, hashSize: 1, pathBytes: "abcd", limit: 50 }, expect.anything());
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    const link = new URL(writeLink.mock.calls[0][0]);
+    expect(link.searchParams.get("routeHashSize")).toBe("1");
+    expect(link.searchParams.get("routePathBytes")).toBe("abcd");
+    expect(link.searchParams.get("routeSince")).toBe(String(page.windowStart));
+    expect(link.searchParams.get("routeUntil")).toBe(String(page.windowEnd));
+    fireEvent.click(screen.getByRole("button", { name: "24h" }));
+    await waitFor(() => expect(getRouteEvidence).toHaveBeenLastCalledWith("YOW", key, { range: "24h", limit: 50 }, expect.anything()));
+    expect(screen.getByText("routeRange=24h", { selector: "output" })).toBeInTheDocument();
+  });
+  it("does not reuse cached evidence when a shared link changes only its path", async () => {
+    mount("/?routeHashSize=1&routePathBytes=abcd"); await screen.findByText("Garden");
+    vi.mocked(getRouteEvidence).mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByText("Other width"));
+    expect(screen.queryByText("Garden")).not.toBeInTheDocument();
+    await waitFor(() => expect(getRouteEvidence).toHaveBeenLastCalledWith("YOW", key, { range: "24h", hashSize: 2, pathBytes: "ab01cd02", limit: 50 }, expect.anything()));
+  });
+  it.each(["routeHashSize=1", "routePathBytes=abcd", "routeHashSize=1&routeHashSize=2&routePathBytes=abcd", "routeHashSize=4&routePathBytes=abcd", "routeHashSize=01&routePathBytes=abcd", "routeHashSize=1&routePathBytes=ab", "routeHashSize=2&routePathBytes=abcde", "routeHashSize=1&routePathBytes=ABCD"])("rejects an invalid pinned path instead of loading today's bytes: %s", async selector => {
+    mount("/?" + selector);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid shared path");
+    expect(getRouteEvidence).not.toHaveBeenCalled();
+  });
   it("keeps a shared month link and offers every period the server serves", async () => {
     mount("/?routeRange=30d");
     await screen.findByText("Garden");
