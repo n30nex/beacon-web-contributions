@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useState, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,7 @@ import { useRegion } from "../../hooks/useRegion";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useChartColors, nodeTypeColor } from "../stats/chartTheme";
 import { NODE_TYPES } from "../../lib/node-types";
-import { buildTopology, LiveTraffic, loadTopology, reportFromEvent, type LiveReport, type PacketKind, flowColor, linkContext } from "./topology";
+import { buildTopology, LiveTraffic, loadTopology, loadTopologyRoutes, ROUTE_WINDOWS, reportFromEvent, type LiveReport, type PacketKind, flowColor, linkContext } from "./topology";
 import { TopologyCanvas } from "./TopologyCanvas";
 
 type Props = { wsManager: WsManager; active?: boolean; onViewNode: (id: string) => void; onViewObserver: (id: string) => void; onAnalyzePacket: (hash: string) => void };
@@ -20,7 +20,7 @@ export function TopologyPage(props: Props) {
   const requested = params.get("topoRegion") || "";
   const focus = /^[A-Za-z0-9_-]{1,16}$/.test(requested) && (!iatas || iatas.includes(requested)) ? requested : "";
   const selectedIatas = useMemo(() => focus ? [focus] : iatas, [focus, iatas]);
-  const setFocus = (value: string) => { const next = new URLSearchParams(params); if (value) next.set("topoRegion", value); else next.delete("topoRegion"); next.delete("topoNode"); setParams(next); };
+  const setFocus = (value: string) => { const next = new URLSearchParams(params); if (value) next.set("topoRegion", value); else next.delete("topoRegion"); next.delete("topoNode"); next.delete("topoFocus"); setParams(next); };
   return <TopologySession key={`${regionKey}|${focus}`} {...props} iatas={selectedIatas} allowedIatas={iatas} resolved={isResolved !== false} focus={focus} onFocus={setFocus} />;
 }
 
@@ -34,23 +34,30 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   const [copied, setCopied] = useState(false);
   const [params, setParams] = useSearchParams();
   const selected = params.get("topoNode") || "";
-  const select = useCallback((id: string) => setParams(prev => { const next = new URLSearchParams(prev); next.set("topoNode", id); return next; }), [setParams]);
+  const requestedWindow = params.get("topoWindow") || "15m";
+  const routeWindow = Object.hasOwn(ROUTE_WINDOWS, requestedWindow) ? requestedWindow as keyof typeof ROUTE_WINDOWS : "15m";
   const data = useQuery({ queryKey: ["topology", iatas ?? "*"], queryFn: ({ signal }) => loadTopology(iatas, signal), enabled: active && resolved, staleTime: 120_000, refetchOnWindowFocus: false });
+  const routes = useQuery({ queryKey: ["topology-routes", iatas ?? "*", routeWindow], queryFn: ({ signal }) => loadTopologyRoutes(iatas, signal, Date.now(), ROUTE_WINDOWS[routeWindow]), enabled: active && resolved, staleTime: 120_000, refetchOnWindowFocus: false });
   const regions = useQuery({ queryKey: ["iatas"], queryFn: getIatas, staleTime: 300_000, enabled: active && resolved });
   const catalogues = useQuery({ queryKey: ["scope-catalogues"], queryFn: getScopeCatalogues, enabled: active && resolved, staleTime: 300_000, refetchInterval: 300_000, refetchIntervalInBackground: false, refetchOnWindowFocus: false, retry: false });
-  const graph = useMemo(() => buildTopology(data.data?.nodes ?? []), [data.data]);
+  const graph = useMemo(() => buildTopology(data.data?.nodes ?? [], focus, routes.data?.routes ?? []), [data.data, focus, routes.data]);
+  const requestedCameraRegion = params.get("topoFocus") || focus;
+  const cameraRegion = graph.regions.some(r => r.code === requestedCameraRegion) ? requestedCameraRegion : "";
+  const select = useCallback((id: string) => setParams(prev => { const next = new URLSearchParams(prev); next.set("topoNode", id); const region = graph.byId.get(id)?.region; if (region) next.set("topoFocus", region); return next; }), [setParams, graph]);
+  const focusCamera = (code: string) => setParams(prev => { const next = new URLSearchParams(prev); if (code) next.set("topoFocus", code); else next.delete("topoFocus"); next.delete("topoNode"); return next; });
   const [traffic] = useState(() => new LiveTraffic());
   const [live, setLive] = useState<{ reports: LiveReport[]; tick: number; now: number; gap: boolean; capped: boolean }>(() => ({ reports: [], tick: 0, now: Date.now(), gap: false, capped: false }));
   const subscribe = useCallback((notify: () => void) => wsManager.onStatusChange(notify), [wsManager]);
   const status = useSyncExternalStore(subscribe, () => wsManager.getStatus());
+  const receive = useEffectEvent((event: Parameters<typeof reportFromEvent>[0]) => {
+    if (document.hidden || (iatas && !iatas.includes(event?.observation?.iata))) return;
+    const report = reportFromEvent(event, graph, Date.now());
+    if (report) traffic.add(report);
+  });
 
   useEffect(() => {
     if (!active || paused || !resolved || !data.data) return;
-    const packet = wsManager.onPacketObservation(event => {
-      if (document.hidden || (iatas && !iatas.includes(event?.observation?.iata))) return;
-      const report = reportFromEvent(event, graph, Date.now());
-      if (report) traffic.add(report);
-    });
+    const packet = wsManager.onPacketObservation(event => receive(event));
     const lagged = wsManager.onLagged(() => traffic.markGap());
     const visibility = () => { wsManager.setResolvePath(!document.hidden); if (document.hidden) { traffic.markGap(); traffic.clearFlows(); } };
     visibility();
@@ -61,7 +68,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
       setLive(previous => ({ reports: [...traffic.reports], tick: previous.tick + 1, now, gap: traffic.gapUntil > now, capped: traffic.cappedUntil > now }));
     }, 500);
     return () => { packet(); lagged(); clearInterval(timer); document.removeEventListener("visibilitychange", visibility); wsManager.setResolvePath(false); traffic.clearFlows(); traffic.markGap(); };
-  }, [active, paused, resolved, data.data, graph, iatas, traffic, wsManager]);
+  }, [active, paused, resolved, data.data, iatas, traffic, wsManager]);
 
   const counts = useMemo(() => {
     const observers = new Map<string, { name: string; count: number; iata: string }>();
@@ -84,6 +91,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
         <div className="flex flex-wrap items-center gap-2">
           <span className={`mr-1 flex items-center gap-2 text-xs ${paused || status !== "connected" ? "text-warn" : "text-green"}`} role="status"><span className="h-2 w-2 rounded-full bg-current" />{t(paused ? "topology.paused" : status === "connected" ? "topology.live" : "topology.reconnecting")}</span>
           <select className={`${button} max-w-52`} aria-label={t("topology.region")} value={focus} onChange={e => onFocus(e.target.value)}><option value="">{t("topology.allRegions")}</option>{(regions.data ?? []).filter(r => !allowedIatas || allowedIatas.includes(r.iata)).map(r => <option key={r.iata} value={r.iata}>{r.iata}{r.displayName ? ` · ${r.displayName}` : ""}</option>)}</select>
+          <select className={button} aria-label={t("topology.routeWindow")} value={routeWindow} onChange={e => setParams(prev => { const next = new URLSearchParams(prev); next.set("topoWindow", e.target.value); return next; })}>{Object.keys(ROUTE_WINDOWS).map(value => <option key={value} value={value}>{t(`topology.windows.${value}`)}</option>)}</select>
           <button className={button} onClick={togglePause}>{t(paused ? "topology.resume" : "topology.pause")}</button>
           <button className={button} onClick={share}>{t(copied ? "topology.copied" : "topology.copy")}</button>
         </div>
@@ -93,13 +101,15 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
       </div>
       {data.isError && <p role="alert" className="text-sm text-danger">{t("topology.loadError")} <button className={button} onClick={() => data.refetch()}>{t("topology.refresh")}</button></p>}
       {data.isLoading && <p role="status" className="text-sm text-text-normal">{t("topology.loading")}</p>}
-      {(data.data?.capped || graph.linksCapped || live.capped) && <p className="text-xs text-warn">{t("topology.bounded")}</p>}
+      {routes.isLoading && <p role="status" className="text-xs text-text-normal">{t("topology.loadingRoutes")}</p>}
+      {routes.isError && <p role="alert" className="text-xs text-warn">{t("topology.routesError")} <button className={button} onClick={() => routes.refetch()}>{t("topology.refresh")}</button></p>}
+      {(data.data?.capped || routes.data?.capped || graph.linksCapped || live.capped) && <p className="text-xs text-warn">{t("topology.bounded")}</p>}
       {live.gap && <p className="text-xs text-warn">{t("topology.gap")}</p>}
       <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-3">
-          <TopologyCanvas graph={graph} traffic={traffic} colors={colors} selected={selected} onSelect={select} motion={animate && !reducedMotion && !paused} active={active} tick={live.tick} />
+          <TopologyCanvas graph={graph} traffic={traffic} colors={colors} selected={selected} onSelect={select} region={cameraRegion} onRegion={focusCamera} isolated={focus} onIsolate={onFocus} motion={animate && !reducedMotion && !paused} active={active} tick={live.tick} />
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-bg-surface px-3 py-2">
-            <div className="flex flex-wrap gap-3 text-[11px] text-text-normal">{NODE_TYPES.map(type => <span key={type.name} className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: nodeTypeColor(type.name, colors) }} />{t(`topology.types.${type.name}`)}</span>)}<span>{t("topology.observerRing")}</span><span className="text-primary">┄ {t("topology.crossRegion")}</span><span className="text-green">━ {t("topology.sharedDefault")}</span></div>
+            <div className="flex flex-wrap gap-3 text-[11px] text-text-normal">{NODE_TYPES.map(type => <span key={type.name} className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: nodeTypeColor(type.name, colors) }} />{t(`topology.types.${type.name}`)}</span>)}<span>{t("topology.observerRing")}</span><span style={{ color: colors.secondary }}>━ {t("topology.routeSegments")}</span><span className="text-primary">┄ {t("topology.crossRegion")}</span><span className="text-green">━ {t("topology.sharedDefault")}</span></div>
             <label className="flex min-h-8 items-center gap-2 text-xs text-text-normal"><input type="checkbox" checked={animate && !reducedMotion} disabled={reducedMotion} onChange={e => setAnimate(e.target.checked)} />{t(reducedMotion ? "topology.reducedMotion" : "topology.motion")}</label>
           </div>
           <div className="rounded-lg border border-border bg-bg-surface p-3">
@@ -127,7 +137,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
           <div className="rounded-xl border border-border bg-bg-surface p-3"><h2 className="mb-2 text-sm font-semibold text-text-bright">{t("topology.latest")}</h2><div className="max-h-64 divide-y divide-border-subtle overflow-y-auto">{live.reports.slice(-10).reverse().map(report => <button key={report.key} className="flex min-h-12 w-full items-center gap-2 py-2 text-left text-xs text-text-normal" onClick={() => onAnalyzePacket(report.hash)}><span style={{ color: flowColor(report.kind, colors) }}>●</span><span className="min-w-0 flex-1"><span className="block font-mono text-text-bright">{report.hash.slice(0, 8)} <span className="text-primary">{report.iata}</span> <span className="text-green">{report.scope}</span></span><span className="block truncate">{report.observerName}</span></span><span className="max-w-24 text-right text-[10px]">{t(report.segments.length ? report.partial ? "topology.partialPath" : "topology.path" : "topology.noPath")}</span></button>)}</div></div>
         </aside>
       </div>
-      <details className="rounded-lg border border-border px-3 py-2 text-xs text-text-normal"><summary className="min-h-8 cursor-pointer content-center">{t("topology.about")}</summary><p className="max-w-4xl pb-3 leading-relaxed">{t("topology.definition")}</p><button className={button} disabled={data.isFetching || !active || !resolved} onClick={() => data.refetch()}>{t("topology.refresh")}</button></details>
+      <details className="rounded-lg border border-border px-3 py-2 text-xs text-text-normal"><summary className="min-h-8 cursor-pointer content-center">{t("topology.about")}</summary><p className="max-w-4xl pb-3 leading-relaxed">{t("topology.definition")}</p><button className={button} disabled={data.isFetching || routes.isFetching || !active || !resolved} onClick={() => { data.refetch(); routes.refetch(); }}>{t("topology.refresh")}</button></details>
     </div>
   </section>;
 }

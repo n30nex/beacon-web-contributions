@@ -11,7 +11,7 @@ import i18n from "../../../src/i18n";
 vi.mock("../../../src/features/topology/TopologyCanvas", () => ({ TopologyCanvas: () => <div>canvas</div> }));
 vi.mock("../../../src/hooks/useRegion", () => ({ useRegion: () => ({ iatas: ["YOW"], regionKey: "YOW", isResolved: true }) }));
 vi.mock("../../../src/features/stats/chartTheme", () => ({ useChartColors: () => ({}), nodeTypeColor: () => "#fff" }));
-vi.mock("../../../src/api/client", () => ({ getIatas: vi.fn(async () => [{ iata: "YOW" }]), getScopeCatalogues: vi.fn(async () => []), getNodesPage: vi.fn(async () => ({ items: [], nextCursor: null, hasMore: false })) }));
+vi.mock("../../../src/api/client", () => ({ getIatas: vi.fn(async () => [{ iata: "YOW" }]), getScopeCatalogues: vi.fn(async () => []), getNodesPage: vi.fn(async () => ({ items: [], nextCursor: null, hasMore: false })), getKnownRoutesPage: vi.fn(async () => ({ items: [], nextCursor: null, hasMore: false })) }));
 
 afterEach(() => vi.useRealTimers());
 describe("Topology live lifecycle", () => {

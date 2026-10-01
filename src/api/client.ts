@@ -178,6 +178,7 @@ function toCursorPage<T>(items: T[], limit: number, cursorOf: (last: T) => numbe
 // ("" = all), unlike the comma-separated `iatas` used elsewhere.
 export async function getKnownRoutesPage(
   params?: { iata?: string; hopCount?: number; cursor?: number; limit?: number },
+  signal?: AbortSignal,
 ): Promise<CursorPage<KnownRoute>> {
   const limit = params?.limit ?? DEFAULT_PAGE_SIZE;
   const items = await request<KnownRoute[]>("/routes", {
@@ -185,7 +186,7 @@ export async function getKnownRoutesPage(
     hopCount: params?.hopCount,
     cursor: params?.cursor,
     limit,
-  });
+  }, signal);
   return toCursorPage(items, limit, (r) => r.lastSeen);
 }
 
