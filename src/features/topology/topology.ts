@@ -228,8 +228,9 @@ export function project(point: Point3, camera: Camera, width: number, height: nu
   const local = { x: point.x - camera.target.x, y: point.y - camera.target.y, z: point.z - camera.target.z };
   const x = local.x * Math.cos(camera.yaw) - local.z * Math.sin(camera.yaw);
   const z = local.x * Math.sin(camera.yaw) + local.z * Math.cos(camera.yaw);
-  const y = local.y * Math.cos(camera.pitch) - z * Math.sin(camera.pitch);
-  const depth = local.y * Math.sin(camera.pitch) + z * Math.cos(camera.pitch);
+  // Positive pitch puts the camera above the ground: raised nodes are closer.
+  const y = local.y * Math.cos(camera.pitch) + z * Math.sin(camera.pitch);
+  const depth = -local.y * Math.sin(camera.pitch) + z * Math.cos(camera.pitch);
   const perspective = 3 * extent / (3 * extent + depth);
   const scale = Math.min(width, height) / (extent * 2.6) * camera.zoom * perspective;
   return { x: width / 2 + x * scale, y: height / 2 - y * scale, depth, scale, visible: perspective > 0 };
@@ -239,7 +240,15 @@ export function fitCamera(points: Point3[], camera: Camera, width: number, heigh
   if (!points.length) return { ...DEFAULT_CAMERA, target: { ...DEFAULT_CAMERA.target } };
   const target = { x: 0, y: 0, z: 0 };
   for (const axis of ["x", "y", "z"] as const) target[axis] = (Math.min(...points.map(p => p[axis])) + Math.max(...points.map(p => p[axis]))) / 2;
-  const base = { ...camera, target, zoom: 1 };
+  let base = { ...camera, target, zoom: 1 };
+  // Perspective can shift the projected centre away from the world-space centre.
+  // Recentre before scaling so Fit does not leave the mesh against one edge.
+  for (let pass = 0; pass < 2; pass++) {
+    const view = points.map(point => project(point, base, width, height, extent));
+    const cx = (Math.min(...view.map(p => p.x)) + Math.max(...view.map(p => p.x))) / 2;
+    const cy = (Math.min(...view.map(p => p.y)) + Math.max(...view.map(p => p.y))) / 2;
+    base = panCamera(base, width / 2 - cx, height / 2 - cy, width, height, extent);
+  }
   const projected = points.map(point => project(point, base, width, height, extent));
   const dx = Math.max(1, ...projected.map(p => Math.abs(p.x - width / 2)));
   const dy = Math.max(1, ...projected.map(p => Math.abs(p.y - height / 2)));
@@ -248,7 +257,7 @@ export function fitCamera(points: Point3[], camera: Camera, width: number, heigh
 
 export function panCamera(camera: Camera, dx: number, dy: number, width: number, height: number, extent: number): Camera {
   const scale = Math.min(width, height) / (extent * 2.6) * camera.zoom;
-  const x = -dx / scale, z = -dy / (scale * Math.sin(camera.pitch));
+  const x = -dx / scale, z = dy / (scale * Math.sin(camera.pitch));
   return { ...camera, target: { x: camera.target.x + x * Math.cos(camera.yaw) + z * Math.sin(camera.yaw), y: camera.target.y, z: camera.target.z - x * Math.sin(camera.yaw) + z * Math.cos(camera.yaw) } };
 }
 

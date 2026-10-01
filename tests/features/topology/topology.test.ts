@@ -54,6 +54,16 @@ describe("3D topology evidence and bounds", () => {
     expect(front.x).not.toBe(side.x); expect(front.depth).not.toBe(side.depth);
     expect([front.x, front.y, front.scale, side.x, side.y].every(Number.isFinite)).toBe(true);
   });
+  it("looks down from above: raised nodes are closer and above their ground position", () => {
+    const point = { x: 50, y: 0, z: 0 };
+    const ground = project(point, DEFAULT_CAMERA, 1000, 700, 500);
+    const raised = project({ ...point, y: 70 }, DEFAULT_CAMERA, 1000, 700, 500);
+    expect(raised.depth).toBeLessThan(ground.depth);
+    expect(raised.scale).toBeGreaterThan(ground.scale);
+    expect(raised.y).toBeLessThan(ground.y);
+    const top = { ...DEFAULT_CAMERA, pitch: Math.PI / 2 };
+    expect(project({ ...point, y: 70 }, top, 1000, 700, 500).scale).toBeGreaterThan(project(point, top, 1000, 700, 500).scale);
+  });
   it("stops on repeating cursors, passes cancellation, and bounds the expanded snapshot", async () => {
     vi.mocked(getNodesPage).mockResolvedValue({ items: [a], nextCursor: 1, hasMore: true });
     const controller = new AbortController();

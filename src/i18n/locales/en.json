@@ -515,9 +515,9 @@
       "remove": "Remove card"
     },
     "topology": {
-      "title": "Mesh Pulse",
+      "title": "Topology",
       "eyebrow": "LIVE TOPOLOGY / 3D",
-      "canvas": "3D mesh topology. Click a region label to focus. Drag to rotate; Shift-drag or arrow keys to pan; Shift-arrow keys to rotate; plus and minus to zoom; Home to fit; Escape for overview. Use Find a node for keyboard selection.",
+      "canvas": "3D topology viewed from above. Drag to move or rotate with the chosen mode; Shift-drag swaps modes. Arrow keys move, Shift-arrows rotate, plus and minus zoom, Home fits the view and Escape returns to the mesh. Use Find a node for keyboard selection.",
       "projection": "REGIONAL TOPOLOGY · 3D",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
@@ -537,8 +537,8 @@
       "paused": "Paused",
       "live": "Live",
       "reconnecting": "Connecting…",
-      "region": "Isolate region",
-      "allRegions": "All selected regions",
+      "region": "Region",
+      "allRegions": "All regions",
       "resume": "Resume",
       "pause": "Pause",
       "copy": "Copy link",
@@ -607,7 +607,17 @@
         "24h": "Routes · 24 hours"
       },
       "expand": "Full screen",
-      "collapse": "Exit full screen"
+      "collapse": "Exit full screen",
+      "display": "Display",
+      "threeDView": "3D view",
+      "dragAction": "Drag to",
+      "inspector": "Node details",
+      "close": "Close",
+      "hideInspector": "Close details",
+      "activity": "Live activity",
+      "activityCounts": "Reports {{count}} · Observers {{observers}} · 60s",
+      "incomplete": "Gaps",
+      "controlsPan": "Drag to move · Shift-drag to rotate · pinch or scroll to zoom. Click a region label to focus; use Region to show it alone."
     }
   }
 }

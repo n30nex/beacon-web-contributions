@@ -519,9 +519,9 @@
       "remove": "Retirer la fiche"
     },
     "topology": {
-      "title": "Pouls du mesh",
+      "title": "Topologie",
       "eyebrow": "TOPOLOGIE EN DIRECT / 3D",
-      "canvas": "Topologie 3D du mesh. Cliquez sur une région pour la centrer. Glissez pour tourner ; Maj-glisser ou les flèches pour déplacer ; Maj-flèches pour tourner ; plus et moins pour zoomer ; Début pour cadrer ; Échap pour la vue d’ensemble. Utilisez Rechercher un nœud pour la sélection au clavier.",
+      "canvas": "Topologie 3D vue du dessus. Glissez pour déplacer ou tourner selon le mode choisi ; Maj-glisser inverse le mode. Les flèches déplacent, Maj-flèches tournent, plus et moins zooment, Début cadre la vue et Échap revient au mesh. Utilisez Rechercher un nœud pour la sélection au clavier.",
       "projection": "TOPOLOGIE RÉGIONALE · 3D",
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",
@@ -541,8 +541,8 @@
       "paused": "En pause",
       "live": "En direct",
       "reconnecting": "Connexion…",
-      "region": "Région à isoler",
-      "allRegions": "Toutes les régions sélectionnées",
+      "region": "Région",
+      "allRegions": "Toutes les régions",
       "resume": "Reprendre",
       "pause": "Pause",
       "copy": "Copier le lien",
@@ -611,7 +611,17 @@
         "24h": "Routes · 24 heures"
       },
       "expand": "Plein écran",
-      "collapse": "Quitter le plein écran"
+      "collapse": "Quitter le plein écran",
+      "display": "Affichage",
+      "threeDView": "Vue 3D",
+      "dragAction": "Glisser pour",
+      "inspector": "Détails du nœud",
+      "close": "Fermer",
+      "hideInspector": "Fermer les détails",
+      "activity": "Activité en direct",
+      "activityCounts": "Rapports {{count}} · Observateurs {{observers}} · 60 s",
+      "incomplete": "Interruptions",
+      "controlsPan": "Glisser pour déplacer · Maj-glisser pour tourner · pincer ou défiler pour zoomer. Cliquez sur le nom d’une région pour la centrer ; utilisez Région pour l’isoler."
     }
   }
 }

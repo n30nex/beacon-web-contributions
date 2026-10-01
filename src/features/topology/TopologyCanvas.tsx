@@ -1,4 +1,5 @@
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import type { IataCode } from "../../types/api";
 import { useTranslation } from "react-i18next";
 import { nodeTypeColor, type ChartColors } from "../stats/chartTheme";
 import { DEFAULT_CAMERA, FLOW_MS, project, fitCamera, panCamera, pathControls, visibleLinks, flowColor, linkContext, type Camera, type PathDisplay, type LiveTraffic, type Point3, type Topology } from "./topology";
@@ -158,7 +159,7 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
       if (!recentByRegion.has(report.iata)) recentByRegion.set(report.iata, report);
     }
     for (const region of graph.regions) {
-      const q = p({ ...region, z: region.z - region.radius - 22 });
+      const q = p({ ...region, z: region.z + region.radius + 22 });
       if (q.x < -100 || q.x > width + 100 || q.y < -30 || q.y > height + 30) continue;
       const label = `${region.code} · ${region.count}`;
       const w = ctx!.measureText(label).width + 16;
@@ -191,7 +192,7 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
   function down(e: PointerEvent) {
     if (e.button > 1) return;
     transition = null; start = { x: e.clientX, y: e.clientY }; moved = pointers.size > 0;
-    panning = dragMode === "pan" || e.shiftKey || e.button === 1;
+    panning = e.button === 1 || (e.shiftKey ? dragMode !== "pan" : dragMode === "pan");
     pointers.set(e.pointerId, start); canvas.setPointerCapture(e.pointerId);
   }
   function move(e: PointerEvent) {
@@ -258,10 +259,11 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
   };
 }
 
-export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, region, onRegion, isolated, onIsolate, motion, active, tick }: { graph: Topology; traffic: LiveTraffic; colors: ChartColors; selected: string; onSelect: (id: string) => void; region: string; onRegion: (code: string) => void; isolated: string; onIsolate: (code: string) => void; motion: boolean; active: boolean; tick: number }) {
+export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, region, onRegion, isolated, onIsolate, regions, controls, settings, motion, active, tick }: { graph: Topology; traffic: LiveTraffic; colors: ChartColors; selected: string; onSelect: (id: string) => void; region: string; onRegion: (code: string) => void; isolated: string; onIsolate: (code: string) => void; regions: IataCode[]; controls: ReactNode; settings: ReactNode; motion: boolean; active: boolean; tick: number }) {
   const { t } = useTranslation();
   const canvas = useRef<HTMLCanvasElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const displayMenu = useRef<HTMLDetailsElement>(null);
   const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const change = () => setExpanded(document.fullscreenElement === panel.current);
@@ -269,8 +271,13 @@ export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, reg
     return () => document.removeEventListener("fullscreenchange", change);
   }, []);
   const selectNode = useEffectEvent(onSelect);
-  const selectRegion = useEffectEvent(onRegion);
-  const [display, setDisplay] = useState<PathDisplay>("all"), [mode, setMode] = useState<"orbit" | "pan">("orbit");
+  const selectRegion = useEffectEvent((code: string) => { if (!code && isolated) onIsolate(""); else onRegion(code); });
+  const [display, setDisplay] = useState<PathDisplay>("all"), [mode, setMode] = useState<"orbit" | "pan">("pan");
+  useEffect(() => {
+    const close = (event: PointerEvent) => { if (displayMenu.current && !displayMenu.current.contains(event.target as Node)) displayMenu.current.open = false; };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   const renderer = useRef<ReturnType<typeof createRenderer>>(null);
   useEffect(() => {
     if (!canvas.current) return;
@@ -279,19 +286,28 @@ export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, reg
   }, [graph, traffic, colors]);
   useEffect(() => { renderer.current?.update(selected, region, selected || display !== "selected" ? display : "all", mode, motion, active); }, [selected, region, display, mode, motion, active, tick, graph, colors]);
   const button = "min-h-11 rounded border border-border bg-bg-surface px-3 text-xs text-text-bright hover:border-primary";
+  const choices = [...new Map([...graph.regions.map(r => ({ iata: r.code } as IataCode)), ...regions].map(r => [r.iata, r])).values()].sort((a, b) => a.iata.localeCompare(b.iata));
   return <div ref={panel} className={`min-w-0 overflow-hidden rounded-xl border border-border bg-bg-base ${expanded ? "flex h-screen flex-col" : ""}`}>
-    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-bg-surface p-2">
-      <select className={`${button} min-w-0 max-w-44`} aria-label={t("topology.cameraRegion")} value={region} onChange={e => onRegion(e.target.value)}><option value="">{t("topology.overview")}</option>{graph.regions.map(r => <option key={r.code} value={r.code}>{r.code} · {r.count}</option>)}</select>
-      {region && !isolated && <button className={button} onClick={() => onIsolate(region)}>{t("topology.isolate", { region })}</button>}
+    <div className="relative z-10 flex flex-wrap items-center gap-2 border-b border-border bg-bg-surface p-2">
+      <select className={`${button} min-w-0 max-w-48`} aria-label={t("topology.region")} value={isolated || region} onChange={e => onIsolate(e.target.value)}><option value="">{t("topology.allRegions")}</option>{choices.map(r => <option key={r.iata} value={r.iata} disabled={r.iata === "?"}>{r.iata}{r.displayName ? ` · ${r.displayName}` : ""}</option>)}</select>
+      {region && region !== "?" && !isolated && <button className={button} onClick={() => onIsolate(region)}>{t("topology.isolate", { region })}</button>}
       {isolated && <button className={button} onClick={() => onIsolate("")}>{t("topology.showAllRegions")}</button>}
-      <select className={`${button} ml-auto max-w-full`} aria-label={t("topology.linkView")} value={selected || display !== "selected" ? display : "all"} onChange={e => setDisplay(e.target.value as PathDisplay)}><option value="all">{t("topology.allPaths")}</option><option value="bundled">{t("topology.bundledPaths")}</option><option value="selected" disabled={!selected}>{t("topology.selectedPaths")}</option></select>
+      {controls}
+      <details ref={displayMenu} className="ml-auto sm:relative" onKeyDown={e => { if (e.key === "Escape" && e.currentTarget.open) { e.preventDefault(); e.currentTarget.open = false; e.currentTarget.querySelector("summary")?.focus(); } }}>
+        <summary className={`${button} cursor-pointer content-center`}>{t("topology.display")}</summary>
+        <div className="absolute left-2 right-2 top-full z-20 mt-2 max-h-[min(60dvh,440px)] space-y-3 overflow-y-auto rounded-xl border border-border bg-bg-surface p-3 shadow-xl sm:left-auto sm:right-0 sm:w-72">
+          <label className="block space-y-1 text-xs text-text-normal"><span>{t("topology.linkView")}</span><select className={`${button} block w-full`} value={selected || display !== "selected" ? display : "all"} onChange={e => setDisplay(e.target.value as PathDisplay)}><option value="all">{t("topology.allPaths")}</option><option value="bundled">{t("topology.bundledPaths")}</option><option value="selected" disabled={!selected}>{t("topology.selectedPaths")}</option></select></label>
+          <div className="flex gap-2"><button className={button} onClick={() => renderer.current?.angle(true)}>{t("topology.topView")}</button><button className={button} onClick={() => renderer.current?.angle(false)}>{t("topology.threeDView")}</button></div>
+          <fieldset className="space-y-1"><legend className="text-xs text-text-normal">{t("topology.dragAction")}</legend><div className="flex gap-2"><button className={`${button} ${mode === "pan" ? "border-primary text-primary" : ""}`} aria-pressed={mode === "pan"} onClick={() => setMode("pan")}>{t("topology.pan")}</button><button className={`${button} ${mode === "orbit" ? "border-primary text-primary" : ""}`} aria-pressed={mode === "orbit"} onClick={() => setMode("orbit")}>{t("topology.orbit")}</button></div></fieldset>
+          {settings}
+          <p className="text-[11px] leading-relaxed text-text-muted">{t(mode === "pan" ? "topology.controlsPan" : "topology.controls")}</p>
+        </div>
+      </details>
       {document.fullscreenEnabled && <button className={button} onClick={() => { const action = expanded ? document.exitFullscreen() : panel.current?.requestFullscreen(); action?.catch(() => {}); }}>{t(expanded ? "topology.collapse" : "topology.expand")}</button>}
     </div>
-    <canvas ref={canvas} tabIndex={0} aria-label={t("topology.canvas")} className={`block w-full touch-none focus-visible:outline-offset-[-3px] ${expanded ? "min-h-0 flex-1" : "h-[55vh] min-h-80 lg:h-[calc(100dvh-490px)] lg:max-h-[700px]"} ${mode === "pan" ? "cursor-move" : "cursor-grab"}`} />
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border p-2">
-      <div className="flex flex-wrap gap-1"><button className={button} aria-pressed={mode === "orbit"} onClick={() => setMode("orbit")}>{t("topology.orbit")}</button><button className={button} aria-pressed={mode === "pan"} onClick={() => setMode("pan")}>{t("topology.pan")}</button><button className={button} onClick={() => renderer.current?.angle(true)}>{t("topology.topView")}</button><button className={button} onClick={() => renderer.current?.angle(false)}>3D</button></div>
-      <div className="flex gap-1"><button className={`${button} min-w-11`} aria-label={t("topology.zoomIn")} onClick={() => renderer.current?.zoom(1.3)}>+</button><button className={`${button} min-w-11`} aria-label={t("topology.zoomOut")} onClick={() => renderer.current?.zoom(1 / 1.3)}>−</button><button className={button} onClick={() => renderer.current?.fit()}>{t("topology.fit")}</button></div>
+    <div className={`relative min-h-0 ${expanded ? "flex flex-1" : ""}`}>
+      <canvas ref={canvas} tabIndex={0} aria-label={t("topology.canvas")} className={`block w-full touch-none focus-visible:outline-offset-[-3px] ${expanded ? "min-h-0 flex-1" : "h-[55dvh] min-h-80 md:h-[calc(100dvh-300px)]"} ${mode === "pan" ? "cursor-move" : "cursor-grab"}`} />
+      <div className="absolute bottom-3 right-3 flex gap-1 rounded-lg bg-bg-base/90 p-1"><button className={`${button} min-w-11`} aria-label={t("topology.zoomIn")} onClick={() => renderer.current?.zoom(1.3)}>+</button><button className={`${button} min-w-11`} aria-label={t("topology.zoomOut")} onClick={() => renderer.current?.zoom(1 / 1.3)}>−</button><button className={button} onClick={() => renderer.current?.fit()}>{t("topology.fit")}</button></div>
     </div>
-    <p className="px-3 pb-2 text-[10px] text-text-muted">{t("topology.controls")}</p>
   </div>;
 }
