@@ -8,30 +8,9 @@ Real-time LoRa mesh packet analyzer. Desktop-first, dark-mode-primary, dense inf
 
 Built with React 19, TypeScript, Tailwind CSS 4, TanStack Query, and TanStack Virtual.
 
-[My Atlas](docs/my-atlas.md) provides saved node cards with compact reception activity
-bars, received-signal meters, and expandable observer evidence. Selections persist
-in the visitor's browser; English and French are supported.
-
-## Experimental n30nex-test branch
-
-This branch combines pinned route-evidence links and My Atlas for the Pi preview.
-It is experimental; the 1.4.0 release policy below still excludes Atlas from the
-stable release. No review or production promotion is requested for this branch.
-
 ## Deployment
 
-### Beacon 1.4.0 release
-
-Beacon 1.4.0 is the planned replacement for CoreScope at **https://live.meshcore.ca**.
-**https://dev.meshcore.ca** remains a separate development deployment. Alderson
-controls the production switch; changing this repository does not switch either host.
-My Atlas remains a separate feature for after 1.4.0.
-
-Follow the [1.4.0 release and cutover plan](https://github.com/MeshCore-Beacon/beacon-docs/blob/main/app_documentation/release-140-preparation.md)
-for the matched server revision, retained data, validation and rollback.
-Use the complete deployment in beacon-docs for the same-origin MeshCore Canada
-sites; it routes `/api/*` and `/ws` to the backend. The `docker/` example below
-serves only the frontend and requires a separately reachable backend.
+The `docker/` example serves only the frontend; it needs a separately reachable beacon-server backend.
 
 ### 1. Copy the `docker/` folder to your server
 
@@ -45,7 +24,7 @@ scp -r docker/ user@your-server:/opt/docker/beacon-web
 cd /opt/docker/beacon-web
 cat > .env << 'EOF'
 DOMAIN=web.example.com
-BEACON_WEB_IMAGE=ghcr.io/meshcore-beacon/beacon-web:1.4.0
+BEACON_WEB_IMAGE=ghcr.io/meshcore-beacon/beacon-web:2.0.0
 VITE_API_BASE=https://api.example.com/api/v1
 VITE_WS_URL=wss://api.example.com/ws
 EOF
@@ -54,7 +33,7 @@ EOF
 | Variable | Description |
 |---|---|
 | `DOMAIN` | Domain for HTTPS (Caddy auto-provisions Let's Encrypt certs) |
-| `BEACON_WEB_IMAGE` | Required reviewed release tag or immutable digest; `:dev` is for development only |
+| `BEACON_WEB_IMAGE` | Image to run: a release tag (e.g. `:2.0.0`), `:latest`, or `:dev` |
 | `VITE_API_BASE` | Backend REST API base URL |
 | `VITE_WS_URL` | Backend WebSocket URL |
 
@@ -71,13 +50,9 @@ in [beacon-docs](https://github.com/MeshCore-Beacon/beacon-docs)).
 
 Caddy will automatically obtain a TLS certificate for your domain. Ensure DNS is pointed at your server before starting.
 
-The example requires the 1.4.0 release image to exist. Verify its Actions build and
-pin its digest before the production cutover. For the complete development deployment, use
-`DOMAIN=dev.meshcore.ca`, `BEACON_WEB_IMAGE=ghcr.io/meshcore-beacon/beacon-web:dev`
-and matching development REST/WebSocket URLs in the beacon-docs topology. Use separate deployment directories.
-Branch builds publish revision tags, and `dev` builds also publish `dev`; only
-stable semantic-version tags publish `latest`. Main-branch and prerelease builds
-do not move `latest`.
+Image tags: `latest` is the newest `main` build, each `vX.Y.Z` release tag publishes `X.Y.Z` and `X.Y`,
+and `dev` tracks the `dev` branch. Web and server releases share major.minor versions
+(web `2.0.x` pairs with server `2.0.x`); patch levels are independent.
 
 ## Local Development
 
