@@ -37,7 +37,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   const select = useCallback((id: string) => setParams(prev => { const next = new URLSearchParams(prev); next.set("topoNode", id); return next; }), [setParams]);
   const data = useQuery({ queryKey: ["topology", iatas ?? "*"], queryFn: ({ signal }) => loadTopology(iatas, signal), enabled: active && resolved, staleTime: 120_000, refetchOnWindowFocus: false });
   const regions = useQuery({ queryKey: ["iatas"], queryFn: getIatas, staleTime: 300_000, enabled: active && resolved });
-  const catalogues = useQuery({ queryKey: ["scope-catalogues"], queryFn: getScopeCatalogues, enabled: active && resolved, staleTime: 300_000, refetchOnWindowFocus: false, retry: false });
+  const catalogues = useQuery({ queryKey: ["scope-catalogues"], queryFn: getScopeCatalogues, enabled: active && resolved, staleTime: 300_000, refetchInterval: 300_000, refetchIntervalInBackground: false, refetchOnWindowFocus: false, retry: false });
   const graph = useMemo(() => buildTopology(data.data?.nodes ?? []), [data.data]);
   const [traffic] = useState(() => new LiveTraffic());
   const [live, setLive] = useState<{ reports: LiveReport[]; tick: number; now: number; gap: boolean; capped: boolean }>(() => ({ reports: [], tick: 0, now: Date.now(), gap: false, capped: false }));
