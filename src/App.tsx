@@ -41,6 +41,8 @@ const MapView = lazy(() => import("./features/map/MapView").then((m) => ({ defau
 const StatsOverview = lazy(() => import("./features/stats/StatsOverview").then((m) => ({ default: m.StatsOverview })));
 const MyAtlasPage = lazy(() => import("./features/atlas/MyAtlasPage").then((m) => ({ default: m.MyAtlasPage })));
 
+const TopologyPage = lazy(() => import("./features/topology/TopologyPage").then((m) => ({ default: m.TopologyPage })));
+
 // global singletons
 
 const queryClient = new QueryClient({
@@ -300,6 +302,7 @@ function AppInner({ observerVisit, onObserverDashboard, onReturn, onExitVisit }:
   }, []);
 
   const tabContent: Record<string, React.ReactNode> = {
+    Topology: <TopologyPage wsManager={wsManager} active={!observerVisit} onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
     MyAtlas: <MyAtlasPage active={!observerVisit} onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
     Packets: (
       <PacketList

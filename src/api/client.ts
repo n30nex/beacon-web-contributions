@@ -393,3 +393,19 @@ export function isNotFound(err: unknown): boolean {
 }
 
 export { ApiError };
+
+// Public cached MeshMapper metadata; counts are regional, never per-link evidence.
+export interface ScopeCatalogue {
+  iata: string;
+  url: string;
+  generatedAt: number;
+  checkedAt: number;
+  freshUntil: number;
+  lastError?: string;
+  repeaters: number;
+  scoped: number;
+  scopes: { name: string; repeaters: number; default: number; monitored: boolean; wardriving: boolean }[];
+}
+export function getScopeCatalogues(): Promise<ScopeCatalogue[]> {
+  return request("/scope-catalogues");
+}
