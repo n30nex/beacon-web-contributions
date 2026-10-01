@@ -549,7 +549,7 @@
       "find": "Find a node",
       "search": "Name or public key",
       "noNodes": "No matching nodes in the loaded view.",
-      "neighbours": "{{count}} known neighbours",
+      "neighbours": "{{count}} neighbours in this view",
       "nodeDetails": "Node details",
       "observerDetails": "Observer",
       "clear": "Clear focus",
@@ -584,7 +584,8 @@
       "catalogueError": "MeshMapper metadata is unavailable.",
       "noCatalogue": "No MeshMapper source configured for this IATA.",
       "catalogueMeaning": "Regional counts only; not proof that these neighbours forward each scope. ◉ = monitored, including zero-count names.",
-      "cataloguedLink": "Listed in a regional MeshMapper catalogue; not per-link forwarding evidence."
+      "cataloguedLink": "Listed in a regional MeshMapper catalogue; not per-link forwarding evidence.",
+      "neighbourLimit": "Showing the first 12 of {{count}}."
     }
   }
 }
