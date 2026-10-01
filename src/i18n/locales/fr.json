@@ -553,7 +553,7 @@
       "find": "Rechercher un nœud",
       "search": "Nom ou clé publique",
       "noNodes": "Aucun nœud correspondant dans la vue chargée.",
-      "neighbours": "{{count}} voisins connus",
+      "neighbours": "{{count}} voisins dans cette vue",
       "nodeDetails": "Détails du nœud",
       "observerDetails": "Observateur",
       "clear": "Effacer la sélection",
@@ -588,7 +588,8 @@
       "catalogueError": "Les métadonnées MeshMapper sont indisponibles.",
       "noCatalogue": "Aucune source MeshMapper configurée pour cet IATA.",
       "catalogueMeaning": "Comptages régionaux uniquement ; ils ne prouvent pas que ces voisins transmettent chaque scope. ◉ = surveillé, même à zéro.",
-      "cataloguedLink": "Présent dans un catalogue régional MeshMapper ; ce n’est pas une preuve de transmission sur ce lien."
+      "cataloguedLink": "Présent dans un catalogue régional MeshMapper ; ce n’est pas une preuve de transmission sur ce lien.",
+      "neighbourLimit": "Les 12 premiers sur {{count}} sont affichés."
     }
   }
 }
