@@ -1022,7 +1022,7 @@
     "topology": {
       "title": "Topologie",
       "eyebrow": "TOPOLOGIE EN DIRECT / 3D",
-      "canvas": "Topologie 3D vue du dessus. Glissez pour déplacer ou tourner selon le mode choisi ; Maj-glisser inverse le mode. Les flèches déplacent, Maj-flèches tournent, plus et moins zooment, Début cadre la vue et Échap revient au mesh. Utilisez Rechercher un nœud pour la sélection au clavier.",
+      "canvas": "Topologie 3D vue du dessus. Glisser avec le bouton gauche déplace la vue ; le bouton droit ou Maj-gauche la fait tourner. La molette zoome. Les flèches déplacent, Maj-flèches tournent, plus et moins zooment, Début cadre la vue et Échap revient au mesh. Utilisez Rechercher un nœud pour la sélection au clavier.",
       "projection": "TOPOLOGIE RÉGIONALE · 3D",
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",

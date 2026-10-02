@@ -17,13 +17,14 @@ export function CollectedNodeTelemetry({ publicKey, active }: { publicKey: strin
   for (const sample of samples) {
     const readings = [
       ...Object.entries(sample.values).filter(([name]) => name in statusUnits).map(([name, value]) => ({ name, unit: statusUnits[name]!, value: name === "batteryMv" ? value / 1000 : value, channel: null })),
-      ...sample.sensors.map(sensor => ({ name: sensor.kind, value: sensor.value, unit: sensor.unit, channel: sensor.channel })),
+      ...sample.sensors.map(sensor => ({ name: sensor.kind === "voltage" && sensor.channel === 1 ? "batteryMv" : sensor.kind, value: sensor.value, unit: sensor.unit, channel: sensor.kind === "voltage" && sensor.channel === 1 ? null : sensor.channel })),
     ];
     for (const reading of readings) {
       if (!Number.isFinite(reading.value)) continue;
       const id = `${sample.collectorKey}/${reading.channel ?? "status"}/${reading.name}`;
       const metric = metrics.get(id) ?? { label: `${t(`nodeTelemetry.metrics.${reading.name}`, { defaultValue: reading.name.replaceAll("_", " ") })}${reading.channel != null ? ` · ${t("nodeTelemetry.channel", { channel: reading.channel })}` : ""}`, collector: sample.collectorKey, unit: reading.unit, times: [], values: [], gapMs: 1.5 * Math.max(1, Math.min(72, sample.intervalHours ?? 1)) * 3_600_000 + 120_000 };
-      metric.times.push(sample.receivedAt); metric.values.push(reading.value); metrics.set(id, metric);
+      if (metric.times.at(-1) !== sample.receivedAt) { metric.times.push(sample.receivedAt); metric.values.push(reading.value); }
+      metrics.set(id, metric);
     }
   }
   return <section aria-label={t("nodeTelemetry.collected")} className="mb-3 space-y-2">

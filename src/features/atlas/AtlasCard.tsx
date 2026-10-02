@@ -64,6 +64,7 @@ export function AtlasCard({ pin, range, active, heardOpen, onHeardToggle, onRemo
       {query.isPending ? <p role="status">{t("common.loading")}</p> : query.isError && <p role="status" className="text-warn">{t(node ? "atlas.refreshFailed" : "atlas.nodeUnavailable")} <button type="button" className="min-h-11 underline" onClick={() => void query.refetch()}>{t("atlas.retry")}</button></p>}
       {!node && <CollectedNodeTelemetry publicKey={pin.publicKey} active={active} />}
       {node && <>
+        <NodeTelemetry node={node} active={active} />
         <section aria-label={t("atlas.activity")}>
           <div className="flex items-baseline justify-between gap-2"><span className="text-xs">{t("atlas.reports")}</span><strong className="font-mono text-xl text-text-bright">{number(sample.reports.length)}</strong></div>
           <svg role="img" aria-label={t("atlas.activityLabel", { count: sample.reports.length, range: t(`atlas.ranges.${range}`) })} viewBox={`0 0 ${sample.bins.length * 5} 40`} preserveAspectRatio="none" className="mt-2 h-14 w-full text-primary">
@@ -76,7 +77,6 @@ export function AtlasCard({ pin, range, active, heardOpen, onHeardToggle, onRemo
           <SignalMeter label={t("atlas.snr")} value={sample.snr} min={-30} max={30} unit="dB" color="bg-green" />
           <SignalMeter label={t("atlas.rssi")} value={sample.rssi} min={-140} max={0} unit="dBm" color="bg-secondary" />
         </div>
-        <NodeTelemetry node={node} active={active} />
         {!sample.reports.length && <p className="text-xs">{t("atlas.noReports")}</p>}
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className={button} aria-expanded={heardOpen} aria-controls={`${id}-heard`} onClick={onHeardToggle}>{t("atlas.heardBy")} <span aria-hidden="true">{heardOpen ? "−" : "+"}</span></button>

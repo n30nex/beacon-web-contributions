@@ -986,7 +986,7 @@
     "topology": {
       "title": "Topology",
       "eyebrow": "LIVE TOPOLOGY / 3D",
-      "canvas": "3D topology viewed from above. Drag to move or rotate with the chosen mode; Shift-drag swaps modes. Arrow keys move, Shift-arrows rotate, plus and minus zoom, Home fits the view and Escape returns to the mesh. Use Find a node for keyboard selection.",
+      "canvas": "3D topology viewed from above. Left-drag pans; right-drag or Shift-left-drag rotates. Mouse wheel zooms. Arrow keys pan, Shift-arrows rotate, plus and minus zoom, Home fits the view and Escape returns to the mesh. Use Find a node for keyboard selection.",
       "projection": "REGIONAL TOPOLOGY · 3D",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
