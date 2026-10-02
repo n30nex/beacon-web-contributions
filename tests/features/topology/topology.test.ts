@@ -118,4 +118,9 @@ describe("3D topology evidence and bounds", () => {
     const multi = { ...a, iatas: [{ iata: "YOW", lastHeard: 1 }, { iata: "YKF", lastHeard: 100 }] };
     expect(buildTopology([multi], "YOW").nodes[0]!.region).toBe("YOW");
   });
+  it("does not scan global routes for an empty region", async () => {
+    vi.mocked(getKnownRoutesPage).mockClear();
+    expect(await loadTopologyRoutes([], new AbortController().signal)).toEqual({ routes: [], capped: false });
+    expect(getKnownRoutesPage).not.toHaveBeenCalled();
+  });
 });

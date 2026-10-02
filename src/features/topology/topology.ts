@@ -38,6 +38,8 @@ export async function loadTopology(iatas: string[] | undefined, signal: AbortSig
 }
 
 export async function loadTopologyRoutes(iatas: string[] | undefined, signal: AbortSignal, now = Date.now(), window = ROUTE_WINDOWS["15m"] as number) {
+  signal.throwIfAborted();
+  if (iatas?.length === 0) return { routes: [], capped: false };
   const routes = new Map<number, KnownRoute>(), cursors = new Set<number>();
   let cursor: number | undefined;
   for (let page = 0; page < ROUTE_CAP / 200; page++) {
