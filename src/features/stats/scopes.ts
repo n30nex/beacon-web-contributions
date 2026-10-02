@@ -24,3 +24,33 @@ export function scopeChartOption(rows: ScopeStats[], metric: ScopeMetric, colors
   return { ...leaderboardOption(shown, colors, 126), tooltip: { trigger: "item", renderMode: "richText", ...tooltipStyle(colors) },
     aria: { enabled: true, label: { description: t("scopes.chartDescription") } } };
 }
+
+// Per-hour activity for the shown rows. The series says which hours are rolled: an hour missing from a
+// scope's hourly is zero, an unrolled hour is a gap. Like the cards, observers and nodes add up per scope.
+export function scopeHourly(rows: ScopeStats[], hours: { hour: number; status: string }[] | undefined) {
+  if (!hours || rows.some((row) => !row.hourly)) return null;
+  const zero = { packets: 0, active: 0, observers: 0, nodes: 0 };
+  const byHour = new Map<number, typeof zero>();
+  let hasActivity = true;
+  for (const row of rows) {
+    for (const entry of row.hourly ?? []) {
+      if (entry.observers === undefined || entry.nodes === undefined) hasActivity = false;
+      const observers = entry.observers ?? 0, nodes = entry.nodes ?? 0;
+      const sum = byHour.get(entry.hour) ?? { ...zero };
+      byHour.set(entry.hour, {
+        packets: sum.packets + entry.packets,
+        active: sum.active + (entry.packets || observers || nodes ? 1 : 0),
+        observers: sum.observers + observers,
+        nodes: sum.nodes + nodes,
+      });
+    }
+  }
+  const slots = hours.map((h) => (h.status === "complete" ? (byHour.get(h.hour) ?? zero) : null));
+  const line = (key: keyof typeof zero) => slots.map((slot) => slot && slot[key]);
+  return {
+    packets: line("packets"),
+    active: line("active"),
+    observers: hasActivity ? line("observers") : undefined,
+    nodes: hasActivity ? line("nodes") : undefined,
+  };
+}
