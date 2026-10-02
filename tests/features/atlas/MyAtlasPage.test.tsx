@@ -8,7 +8,7 @@ import type { Node } from "../../../src/features/nodes/types";
 import type { PacketDetail } from "../../../src/types/api";
 import i18n from "../../../src/i18n";
 
-vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn(), getNode: vi.fn(), getNodeObservations: vi.fn(), getPacketDetail: vi.fn() }));
+vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn(), getNode: vi.fn(), getNodeObservations: vi.fn(), getPacketDetail: vi.fn(), getCollectedNodeTelemetry: vi.fn() }));
 const pin = { id: "11111111-1111-4111-8111-111111111111", publicKey: "ab".repeat(32), name: "Old name" };
 const second = { ...pin, id: "22222222-2222-4222-8222-222222222222", publicKey: "cd".repeat(32), name: "Second" };
 const node = { ...pin, name: "Renamed repeater", nodeType: 2, nodeTypeName: "REPEATER", knownNeighborCount: 4, stale: false, lastSeen: Date.now(), iatas: [], lat: null, lng: null } as Node;
@@ -22,6 +22,8 @@ function mount(active = true) {
 function save(nodes = [pin]) { localStorage.setItem(ATLAS_KEY, JSON.stringify({ version: 1, nodes, range: "24h" })); }
 beforeEach(() => {
   vi.clearAllMocks(); localStorage.clear();
+  window.history.replaceState({}, "", "/");
+  vi.mocked(api.getCollectedNodeTelemetry).mockResolvedValue({ items: [], limit: 500 });
   vi.mocked(api.getNodesPage).mockResolvedValue({ items: [node], hasMore: false, nextCursor: null });
   vi.mocked(api.getNode).mockImplementation(async id => id === second.id ? { ...node, ...second } : node);
   vi.mocked(api.getNodeObservations).mockResolvedValue({ items: [report], hasMore: true, nextCursor: 7 });
@@ -34,6 +36,18 @@ beforeEach(() => {
 afterEach(() => { clients.splice(0).forEach(client => client.clear()); vi.restoreAllMocks(); });
 
 describe("My Atlas", () => {
+  it("opens a collector link and pins battery telemetry before the node has advertised", async () => {
+    window.history.replaceState({}, "", `/?tab=MyAtlas&atlasAdd=${pin.publicKey}`);
+    vi.mocked(api.getNodesPage).mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
+    vi.mocked(api.getCollectedNodeTelemetry).mockResolvedValue({ limit: 500, items: [{ nodeKey: pin.publicKey, collectorKey: "cd".repeat(32), radioKey: "ef".repeat(32), receivedAt: Date.now(), values: { batteryMv: 4150 }, sensors: [] }] });
+    mount();
+    expect(screen.getByRole("searchbox")).toHaveValue(pin.publicKey);
+    fireEvent.click(await screen.findByRole("button", { name: "Add repeater telemetry card" }));
+    await screen.findByText("4.15 V");
+    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).nodes[0]).toEqual({ id: "", publicKey: pin.publicKey, name: "" });
+    expect(api.getNode).not.toHaveBeenCalled();
+    expect(api.getNodeObservations).not.toHaveBeenCalled();
+  });
   it("does not scan nodes or packets before a search or selection", () => {
     mount();
     expect(screen.getByText("Build your own view of the mesh")).toBeInTheDocument();

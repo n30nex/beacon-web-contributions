@@ -101,13 +101,16 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
   });
 
   const hasLocation = hasMapLocation(node);
+  const fullLink = new URL(window.location.href);
+  fullLink.searchParams.set("tab", "Nodes"); fullLink.searchParams.set("nodePage", nodeId);
+  for (const key of ["node", "hash", "analyze", "path", "observation"]) fullLink.searchParams.delete(key);
 
   return (
     <DetailPanel
       title={t("nodeDetail.title")}
       onClose={onClose}
       collapsible
-      headerAction={<CopyLinkButton params={{ tab: "Nodes", node: nodeId }} ariaLabel={t("nodeDetail.copyLink")} />}
+      headerAction={<div className="flex flex-wrap items-center gap-2"><a className="min-h-9 content-center text-[11px] text-primary hover:underline" href={fullLink.pathname + fullLink.search}>{t("nodePage.open")}</a><CopyLinkButton params={{ tab: "Nodes", node: nodeId }} ariaLabel={t("nodeDetail.copyLink")} /></div>}
       isLoading={isLoading}
       notFound={!node}
       notFoundLabel={t("nodeDetail.notFound")}

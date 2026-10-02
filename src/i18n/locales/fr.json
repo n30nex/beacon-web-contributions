@@ -611,7 +611,9 @@
         "zoomIn": "Zoom avant",
         "zoomOut": "Zoom arrière",
         "closePopup": "Fermer la fenêtre"
-      }
+      },
+      "liveNodes": "Icônes des nœuds en direct",
+      "dimLiveNodes": "Atténuer les nœuds inactifs pendant le trafic en direct"
     },
     "nodeFilters": {
       "label": "Filtres des nœuds",
@@ -1121,6 +1123,48 @@
       "activityCounts": "Rapports {{count}} · Observateurs {{observers}} · 60 s",
       "incomplete": "Interruptions",
       "controlsPan": "Glissez à gauche pour déplacer, à droite ou avec Maj pour pivoter. Molette pour zoomer. Flèches pour déplacer, Maj+flèches pour pivoter. Début recadre."
+    },
+    "nodePage": {
+      "title": "Détails du nœud",
+      "back": "Nœuds",
+      "open": "Ouvrir la page complète ↗",
+      "inspect": "Inspecter le nœud",
+      "observer": "Tableau de l’observateur",
+      "telemetry": "Télémétrie du nœud",
+      "telemetry24h": "Télémétrie reçue · 24 heures",
+      "packetTypes": "Types de paquets",
+      "regions": "Zones de réception",
+      "clock": "Dérive de l’horloge",
+      "firstSeen": "Première réception",
+      "neighbors": "Voisins · {{count}}"
+    },
+    "nodeTelemetry": {
+      "collected": "Télémétrie du répéteur · 30 derniers jours",
+      "collector": "Collecteur {{key}}",
+      "channel": "Canal {{channel}}",
+      "limit": "Les 24 séries de mesures les plus récentes sont affichées.",
+      "metrics": {
+        "batteryMv": "Batterie",
+        "uptimeSeconds": "Durée de fonctionnement",
+        "lastRssiDbm": "Dernier RSSI",
+        "lastSnrDb": "Dernier SNR",
+        "noiseFloorDbm": "Bruit de fond",
+        "queueLength": "File",
+        "receivedPackets": "Paquets reçus",
+        "sentPackets": "Paquets émis",
+        "voltage": "Tension",
+        "temperature": "Température",
+        "humidity": "Humidité",
+        "relative_humidity": "Humidité",
+        "barometer": "Pression",
+        "pressure": "Pression",
+        "barometric_pressure": "Pression",
+        "current": "Courant",
+        "power": "Puissance",
+        "illuminance": "Luminosité",
+        "luminosity": "Luminosité"
+      },
+      "addCard": "Ajouter la carte de télémétrie du répéteur"
     }
   }
 }

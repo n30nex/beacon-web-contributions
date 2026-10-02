@@ -16,7 +16,7 @@ export function parseAtlas(raw: string | null): SavedAtlas {
     if (value?.version !== 1 || !Array.isArray(value.nodes)) return empty;
     const nodes: AtlasPin[] = [];
     for (const pin of value.nodes) {
-      if (typeof pin?.id !== "string" || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(pin.id) ||
+      if (typeof pin?.id !== "string" || (pin.id !== "" && !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(pin.id)) ||
           typeof pin.publicKey !== "string" || !/^[\da-f]{64}$/i.test(pin.publicKey)) continue;
       const publicKey = pin.publicKey.toLowerCase();
       if (nodes.some(node => node.publicKey === publicKey)) continue;
@@ -30,12 +30,15 @@ export function parseAtlas(raw: string | null): SavedAtlas {
 // Resolve by full identity after a server database reset; never adopt a different node at an old ID.
 export async function loadAtlasNode(pin: AtlasPin, signal?: AbortSignal) {
   let node: Node | undefined;
-  try { node = await getNode(pin.id, signal); }
+  try { if (pin.id) node = await getNode(pin.id, signal); }
   catch (error) { if (!(error instanceof Error && "status" in error && error.status === 404)) throw error; }
   if (node?.publicKey.toLowerCase() !== pin.publicKey) {
     const page = await getNodesPage(undefined, { pubkeyPrefix: pin.publicKey, limit: 2 }, signal);
     const match = page.items.find(row => row.publicKey.toLowerCase() === pin.publicKey);
-    if (!match) throw new Error("Atlas identity unavailable");
+    if (!match) {
+      if (!pin.id) return { node: undefined, page: { items: [], hasMore: false, nextCursor: null } };
+      throw new Error("Atlas identity unavailable");
+    }
     node = await getNode(match.id, signal);
   }
   if (node.publicKey.toLowerCase() !== pin.publicKey) throw new Error("Atlas identity changed");

@@ -11,9 +11,10 @@ import { useSavedAtlas } from "./useSavedAtlas";
 export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { active?: boolean }) {
   const { t } = useTranslation();
   const { saved, update, storageFailed } = useSavedAtlas();
-  const [searchOpen, setSearchOpen] = useState(saved.nodes.length === 0);
-  const [text, setText] = useState("");
-  const [field, setField] = useState("name");
+  const [linkedKey] = useState(() => { const key = new URLSearchParams(window.location.search).get("atlasAdd") ?? ""; return /^[a-f\d]{64}$/i.test(key) ? key.toLowerCase() : ""; });
+  const [searchOpen, setSearchOpen] = useState(!!linkedKey || saved.nodes.length === 0);
+  const [text, setText] = useState(linkedKey);
+  const [field, setField] = useState(linkedKey ? "pubkey" : "name");
   const [query, setQuery] = useState({ text: "", field: "name" });
   const [heardKey, setHeardKey] = useState<string | null>(null);
   useEffect(() => { const timer = setTimeout(() => setQuery({ text: text.trim(), field }), 300); return () => clearTimeout(timer); }, [text, field]);
@@ -45,6 +46,7 @@ export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { acti
         {ready && <div className="mt-3">
           {search.isPending ? <p role="status">{t("common.loading")}</p> : search.isError ? <p role="status">{t("common.loadFailed")} <button type="button" onClick={() => void search.refetch()} className="min-h-11 underline">{t("atlas.retry")}</button></p> : <>
             {!search.data?.items.length && <p role="status" className="text-sm">{t("atlas.noMatches")}</p>}
+            {!search.data?.items.length && query.field === "pubkey" && /^[a-f\d]{64}$/i.test(query.text) && <button type="button" className="my-2 min-h-11 rounded border border-primary/30 bg-primary/10 px-3 text-xs text-primary disabled:opacity-40" disabled={full || saved.nodes.some(pin => pin.publicKey === query.text.toLowerCase())} onClick={() => update(value => parseAtlas(JSON.stringify({ ...value, nodes: [...value.nodes, { id: "", publicKey: query.text, name: "" }] })))}>{t("nodeTelemetry.addCard")}</button>}
             <ul className="grid gap-2 md:grid-cols-2">{search.data?.items.map(node => {
               const selected = saved.nodes.some(pin => pin.publicKey === node.publicKey.toLowerCase());
               const name = node.name || node.publicKey.slice(0, 12).toUpperCase();

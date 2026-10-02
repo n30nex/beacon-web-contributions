@@ -35,6 +35,7 @@ import type { PacketDetail } from "./types/api";
 
 // Map is the only heavy tab (maplibre-gl is ~1MB), so lazy-load it — its chunk is fetched the
 // first time someone opens the Map tab instead of bloating the initial bundle.
+const NodePage = lazy(() => import("./features/nodes/NodePage").then(m => ({ default: m.NodePage })));
 const MyAtlasPage = lazy(() => import("./features/atlas/MyAtlasPage").then(m => ({ default: m.MyAtlasPage })));
 const TopologyPage = lazy(() => import("./features/topology/TopologyPage").then(m => ({ default: m.TopologyPage })));
 const MapView = lazy(() => import("./features/map/MapView").then((m) => ({ default: m.MapView })));
@@ -223,6 +224,7 @@ function AppInner() {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set("tab", tab);
+      if (tab !== "Nodes") { next.delete("nodePage"); next.delete("nodeRange"); }
       if (tab !== "Routes") for (const key of ["route", "routeIata", "routeRange", "routeSince", "routeUntil", "routeHashSize", "routePathBytes"]) next.delete(key);
       // the analyzer is URL-backed, so its mobile close lives here rather than above
       if (isMobile) next.delete("analyze");
@@ -312,7 +314,7 @@ function AppInner() {
         onSelectObservation={setSelectedObservationId}
       />
     ),
-    Nodes: <NodeTable wsManager={wsManager} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />,
+    Nodes: searchParams.get("nodePage") ? <NodePage nodeId={searchParams.get("nodePage")!} onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} /> : <NodeTable wsManager={wsManager} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />,
     Observers: <ObserverPage wsManager={wsManager} onAnalyzePacket={handleAnalyze} />,
     Routes: <RouteTable onAnalyzePacket={viewPacket} onViewObserver={viewObserver} onViewNode={viewNode} />,
     // analyze opens the packet overlay (modal) rather than the side drawer, which suits the

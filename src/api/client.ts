@@ -70,6 +70,21 @@ async function request<T>(path: string, params?: Record<string, string | number 
 
 // endpoint functions
 
+export interface CollectedNodeSample {
+  nodeKey: string;
+  collectorKey: string;
+  radioKey: string;
+  receivedAt: number;
+  intervalHours?: number;
+  values: Record<string, number>;
+  sensors: { channel: number; kind: string; value: number; unit: string }[];
+}
+
+export async function getCollectedNodeTelemetry(key: string, signal?: AbortSignal): Promise<{ items: CollectedNodeSample[]; limit: number }> {
+  try { return await request(`/node-telemetry/${encodeURIComponent(key)}`, undefined, signal); }
+  catch (error) { if (isNotFound(error)) return { items: [], limit: 500 }; throw error; }
+}
+
 export function getObserverComparison(
   iatas: StatsRegion,
   params: { observerA: string; observerB: string; since: number; until: number },

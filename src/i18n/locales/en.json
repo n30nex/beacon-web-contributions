@@ -596,7 +596,9 @@
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
         "closePopup": "Close popup"
-      }
+      },
+      "liveNodes": "Live node icons",
+      "dimLiveNodes": "Dim inactive nodes during live traffic"
     },
     "nodeFilters": {
       "label": "Node filters",
@@ -1085,6 +1087,48 @@
       "activityCounts": "Reports {{count}} · Observers {{observers}} · 60s",
       "incomplete": "Gaps",
       "controlsPan": "Left-drag to pan. Right-drag or Shift-drag to orbit. Scroll to zoom. Arrow keys pan; Shift+arrows orbit. Home fits the view."
+    },
+    "nodePage": {
+      "title": "Node details",
+      "back": "Nodes",
+      "open": "Open full detail ↗",
+      "inspect": "Inspect node",
+      "observer": "Observer dashboard",
+      "telemetry": "Node telemetry",
+      "telemetry24h": "Reported telemetry · 24 hours",
+      "packetTypes": "Packet types",
+      "regions": "Heard in areas",
+      "clock": "Clock drift",
+      "firstSeen": "First seen",
+      "neighbors": "Neighbours · {{count}}"
+    },
+    "nodeTelemetry": {
+      "collected": "Repeater telemetry · last 30 days",
+      "collector": "Collector {{key}}",
+      "channel": "Ch {{channel}}",
+      "limit": "Latest 24 measurement series shown.",
+      "metrics": {
+        "batteryMv": "Battery",
+        "uptimeSeconds": "Uptime",
+        "lastRssiDbm": "Last RSSI",
+        "lastSnrDb": "Last SNR",
+        "noiseFloorDbm": "Noise floor",
+        "queueLength": "Queue",
+        "receivedPackets": "Received packets",
+        "sentPackets": "Sent packets",
+        "voltage": "Voltage",
+        "temperature": "Temperature",
+        "humidity": "Humidity",
+        "relative_humidity": "Humidity",
+        "barometer": "Pressure",
+        "pressure": "Pressure",
+        "barometric_pressure": "Pressure",
+        "current": "Current",
+        "power": "Power",
+        "illuminance": "Light",
+        "luminosity": "Light"
+      },
+      "addCard": "Add repeater telemetry card"
     }
   }
 }
