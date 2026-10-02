@@ -12,7 +12,7 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
   const background = document.createElement("canvas"), backgroundCtx = background.getContext("2d");
   let width = 1, height = 1, frame = 0, previousFrame = 0;
   let running = true, motion = true, selected = "", dirty = true, baseDirty = true, regionCode = "";
-  let display: PathDisplay = "all", dragMode: "orbit" | "pan" = "orbit";
+  let display: PathDisplay = "all";
   let regionHits: { code: string; x: number; y: number; width: number }[] = [];
   let lastTrailVersion = -1;
   let projected: { id: string; x: number; y: number; depth: number; scale: number }[] = [];
@@ -158,18 +158,25 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
       const report = traffic.reports[i]!; if (Date.now() - report.at >= 1500) break;
       if (!recentByRegion.has(report.iata)) recentByRegion.set(report.iata, report);
     }
-    for (const region of graph.regions) {
-      const q = p({ ...region, z: region.z + region.radius + 22 });
+    for (const region of [...graph.regions].sort((a, b) => Number(b.code === regionCode) - Number(a.code === regionCode) || b.count - a.count)) {
+      const q = p({ ...region, y: 6 });
+      if (!q.visible) continue;
+      const size = Math.min(11, Math.max(8, region.radius * q.scale / 7));
+      ctx!.font = `600 ${size}px Inter, sans-serif`;
+      ctx!.globalAlpha = region.code === regionCode ? 1 : Math.min(1, Math.max(0, (region.radius * q.scale - 8) / 30));
+      if (ctx!.globalAlpha < 0.15) continue;
+      q.y -= Math.min(35, region.radius * q.scale * 0.6);
       if (q.x < -100 || q.x > width + 100 || q.y < -30 || q.y > height + 30) continue;
       const label = `${region.code} · ${region.count}`;
       const w = ctx!.measureText(label).width + 16;
-      for (let i = 0; i < 10 && regionHits.some(r => Math.abs(r.x - q.x) < (r.width + w) / 2 + 5 && Math.abs(r.y - q.y) < 29); i++) q.y -= 29;
+      if (regionHits.some(r => Math.abs(r.x - q.x) < (r.width + w) / 2 + 5 && Math.abs(r.y - q.y) < 29)) continue;
       ctx!.fillStyle = colors.bgRaised; ctx!.fillRect(q.x - w / 2, q.y - 13, w, 26);
       ctx!.fillStyle = colors.textBright; ctx!.fillText(label, q.x, q.y + 4);
       const report = recentByRegion.get(region.code);
       if (report) { ctx!.fillStyle = flowColor(report.kind, colors); ctx!.beginPath(); ctx!.arc(q.x - w / 2 - 5, q.y, 3, 0, Math.PI * 2); ctx!.fill(); }
       regionHits.push({ code: region.code, x: q.x, y: q.y, width: w });
     }
+    ctx!.globalAlpha = 1;
     const selectedPoint = projected.find(n => n.id === selected);
     if (selectedPoint) {
       const label = (graph.byId.get(selected)!.name || selected.slice(0, 8)).slice(0, 40);
@@ -190,9 +197,10 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
   function zoom(factor: number) { transition = null; camera = { ...camera, zoom: Math.max(0.2, Math.min(80, camera.zoom * factor)) }; wake(true); }
   function pan(dx: number, dy: number) { transition = null; camera = panCamera(camera, dx, dy, width, height, extent); wake(true); }
   function down(e: PointerEvent) {
-    if (e.button > 1) return;
+    if (e.button > 2) return;
+    e.preventDefault(); canvas.focus({ preventScroll: true });
     transition = null; start = { x: e.clientX, y: e.clientY }; moved = pointers.size > 0;
-    panning = e.button === 1 || (e.shiftKey ? dragMode !== "pan" : dragMode === "pan");
+    panning = e.button !== 2 && !e.shiftKey;
     pointers.set(e.pointerId, start); canvas.setPointerCapture(e.pointerId);
   }
   function move(e: PointerEvent) {
@@ -215,6 +223,7 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
     const hit = [...projected].reverse().find(n => Math.hypot(n.x - x, n.y - y) <= 9);
     if (hit) select(hit.id);
   }
+  function contextMenu(e: MouseEvent) { e.preventDefault(); }
   function wheel(e: WheelEvent) { e.preventDefault(); zoom(Math.exp(-Math.max(-100, Math.min(100, e.deltaY)) * 0.002)); }
   function key(e: KeyboardEvent) {
     if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-", "Home", "Escape"].includes(e.key)) return;
@@ -234,14 +243,15 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
   canvas.addEventListener("pointerdown", down); canvas.addEventListener("pointermove", move);
   canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up); canvas.addEventListener("lostpointercapture", up);
+  canvas.addEventListener("contextmenu", contextMenu);
   canvas.addEventListener("wheel", wheel, { passive: false }); canvas.addEventListener("keydown", key);
   document.addEventListener("visibilitychange", visibility);
   return {
-    update(id: string, region: string, paths: PathDisplay, mode: "orbit" | "pan", animate: boolean, active: boolean) {
+    update(id: string, region: string, paths: PathDisplay, animate: boolean, active: boolean) {
       const changeRegion = region !== regionCode;
       baseDirty ||= selected !== id || changeRegion || paths !== display || lastTrailVersion !== traffic.trailVersion;
       lastTrailVersion = traffic.trailVersion;
-      selected = id; regionCode = region; display = paths; dragMode = mode; motion = animate; running = active;
+      selected = id; regionCode = region; display = paths; motion = animate; running = active;
       related = new Set([id]);
       for (const [a, b] of graph.links) { if (a === id) related.add(b); if (b === id) related.add(a); }
       if (!motion && transition) { camera = transition.to; transition = null; baseDirty = true; }
@@ -253,6 +263,7 @@ function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: Liv
       running = false; cancelAnimationFrame(frame); observer.disconnect();
       canvas.removeEventListener("pointerdown", down); canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up); canvas.removeEventListener("pointercancel", up); canvas.removeEventListener("lostpointercapture", up);
+      canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel); canvas.removeEventListener("keydown", key);
       document.removeEventListener("visibilitychange", visibility);
     },
@@ -272,7 +283,7 @@ export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, reg
   }, []);
   const selectNode = useEffectEvent(onSelect);
   const selectRegion = useEffectEvent((code: string) => { if (!code && isolated) onIsolate(""); else onRegion(code); });
-  const [display, setDisplay] = useState<PathDisplay>("all"), [mode, setMode] = useState<"orbit" | "pan">("pan");
+  const [display, setDisplay] = useState<PathDisplay>("all");
   useEffect(() => {
     const close = (event: PointerEvent) => { if (displayMenu.current && !displayMenu.current.contains(event.target as Node)) displayMenu.current.open = false; };
     document.addEventListener("pointerdown", close);
@@ -284,10 +295,10 @@ export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, reg
     renderer.current = createRenderer(canvas.current, graph, traffic, colors, id => selectNode(id), code => selectRegion(code));
     return () => { renderer.current?.dispose(); renderer.current = null; };
   }, [graph, traffic, colors]);
-  useEffect(() => { renderer.current?.update(selected, region, selected || display !== "selected" ? display : "all", mode, motion, active); }, [selected, region, display, mode, motion, active, tick, graph, colors]);
+  useEffect(() => { renderer.current?.update(selected, region, selected || display !== "selected" ? display : "all", motion, active); }, [selected, region, display, motion, active, tick, graph, colors]);
   const button = "min-h-11 rounded border border-border bg-bg-surface px-3 text-xs text-text-bright hover:border-primary";
   const choices = [...new Map([...graph.regions.map(r => ({ iata: r.code } as IataCode)), ...regions].map(r => [r.iata, r])).values()].sort((a, b) => a.iata.localeCompare(b.iata));
-  return <div ref={panel} className={`min-w-0 overflow-hidden rounded-xl border border-border bg-bg-base ${expanded ? "flex h-screen flex-col" : ""}`}>
+  return <div ref={panel} className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-bg-base ${expanded ? "h-dvh" : "h-full"}`}>
     <div className="relative z-10 flex flex-wrap items-center gap-2 border-b border-border bg-bg-surface p-2">
       <select className={`${button} min-w-0 max-w-48`} aria-label={t("topology.region")} value={isolated || region} onChange={e => onIsolate(e.target.value)}><option value="">{t("topology.allRegions")}</option>{choices.map(r => <option key={r.iata} value={r.iata} disabled={r.iata === "?"}>{r.iata}{r.displayName ? ` · ${r.displayName}` : ""}</option>)}</select>
       {region && region !== "?" && !isolated && <button className={button} onClick={() => onIsolate(region)}>{t("topology.isolate", { region })}</button>}
@@ -298,15 +309,14 @@ export function TopologyCanvas({ graph, traffic, colors, selected, onSelect, reg
         <div className="absolute left-2 right-2 top-full z-20 mt-2 max-h-[min(60dvh,440px)] space-y-3 overflow-y-auto rounded-xl border border-border bg-bg-surface p-3 shadow-xl sm:left-auto sm:right-0 sm:w-72">
           <label className="block space-y-1 text-xs text-text-normal"><span>{t("topology.linkView")}</span><select className={`${button} block w-full`} value={selected || display !== "selected" ? display : "all"} onChange={e => setDisplay(e.target.value as PathDisplay)}><option value="all">{t("topology.allPaths")}</option><option value="bundled">{t("topology.bundledPaths")}</option><option value="selected" disabled={!selected}>{t("topology.selectedPaths")}</option></select></label>
           <div className="flex gap-2"><button className={button} onClick={() => renderer.current?.angle(true)}>{t("topology.topView")}</button><button className={button} onClick={() => renderer.current?.angle(false)}>{t("topology.threeDView")}</button></div>
-          <fieldset className="space-y-1"><legend className="text-xs text-text-normal">{t("topology.dragAction")}</legend><div className="flex gap-2"><button className={`${button} ${mode === "pan" ? "border-primary text-primary" : ""}`} aria-pressed={mode === "pan"} onClick={() => setMode("pan")}>{t("topology.pan")}</button><button className={`${button} ${mode === "orbit" ? "border-primary text-primary" : ""}`} aria-pressed={mode === "orbit"} onClick={() => setMode("orbit")}>{t("topology.orbit")}</button></div></fieldset>
           {settings}
-          <p className="text-[11px] leading-relaxed text-text-muted">{t(mode === "pan" ? "topology.controlsPan" : "topology.controls")}</p>
+          <p className="text-[11px] leading-relaxed text-text-muted">{t("topology.controlsPan")}</p>
         </div>
       </details>
       {document.fullscreenEnabled && <button className={button} onClick={() => { const action = expanded ? document.exitFullscreen() : panel.current?.requestFullscreen(); action?.catch(() => {}); }}>{t(expanded ? "topology.collapse" : "topology.expand")}</button>}
     </div>
-    <div className={`relative min-h-0 ${expanded ? "flex flex-1" : ""}`}>
-      <canvas ref={canvas} tabIndex={0} aria-label={t("topology.canvas")} className={`block w-full touch-none focus-visible:outline-offset-[-3px] ${expanded ? "min-h-0 flex-1" : "h-[55dvh] min-h-80 md:h-[calc(100dvh-300px)]"} ${mode === "pan" ? "cursor-move" : "cursor-grab"}`} />
+    <div className="relative min-h-0 flex-1">
+      <canvas ref={canvas} tabIndex={0} aria-label={t("topology.canvas")} className="absolute inset-0 block h-full w-full touch-none cursor-move focus-visible:outline-offset-[-3px]" />
       <div className="absolute bottom-3 right-3 flex gap-1 rounded-lg bg-bg-base/90 p-1"><button className={`${button} min-w-11`} aria-label={t("topology.zoomIn")} onClick={() => renderer.current?.zoom(1.3)}>+</button><button className={`${button} min-w-11`} aria-label={t("topology.zoomOut")} onClick={() => renderer.current?.zoom(1 / 1.3)}>−</button><button className={button} onClick={() => renderer.current?.fit()}>{t("topology.fit")}</button></div>
     </div>
   </div>;

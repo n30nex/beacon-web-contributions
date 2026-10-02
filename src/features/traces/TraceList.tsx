@@ -26,7 +26,7 @@ interface TraceListProps {
 // heard on each) right on the card instead of making people open the detail panel for a quick look.
 function TracePathPreview({ hashes, snrs }: { hashes: string[]; snrs: number[] }) {
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1.5">
+    <div className="mt-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
       {hashes.map((hash, i) => {
         const snr = snrs?.[i];
         const level = snr != null ? snrLevel(snr) : null;
@@ -34,8 +34,8 @@ function TracePathPreview({ hashes, snrs }: { hashes: string[]; snrs: number[] }
         return (
           <span key={i} className="contents">
             {i > 0 && <span className="text-text-dim" aria-hidden>→</span>}
-            <span className="inline-flex flex-col items-center gap-0.5">
-              <span className="px-1.5 py-px rounded-sm bg-primary/6 text-primary font-mono text-[11px] font-semibold">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded bg-primary/6 px-1">
+              <span className="text-primary font-mono text-[10px] font-semibold">
                 {hash.toUpperCase()}
               </span>
               {/* keep a sub-line on every hop (SNR or a placeholder) so the badges across the row line up */}
@@ -61,7 +61,8 @@ function TraceTagCard({ tag, selected, onSelect }: {
   const { t } = useTranslation();
   return (
     <div
-      className={`bg-bg-surface border rounded-md px-3.5 py-2.5 cursor-pointer ${
+      role="button"
+      className={`min-h-11 bg-bg-surface border-b px-3 py-1.5 cursor-pointer ${
         selected ? "border-primary bg-primary/10" : "border-border hover:border-text-dim/30 hover:bg-bg-raised/50"
       }`}
       onClick={() => onSelect(tag.traceTag)}
@@ -74,14 +75,12 @@ function TraceTagCard({ tag, selected, onSelect }: {
         }
       }}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <span className="font-mono text-xs font-semibold text-primary tracking-wider">{tag.traceTag.toUpperCase()}</span>
         {/* pings get the primary tint, traces the amber one, so the two read apart at a glance */}
         {tag.traceType && <Badge variant={tag.traceType === "PING" ? "text" : "trace"}>{tag.traceType}</Badge>}
+        <span className="font-mono text-[10px] text-text-dim">{t("traces.pkt", { count: tag.packetCount })} · {t("traces.iata", { count: tag.iataCount })} · {t("traces.hops", { count: tag.pathHashes?.length ?? 0 })}</span>
         <Timestamp value={tag.lastHeardAt} className="ml-auto text-[11px] text-text-dim" />
-      </div>
-      <div className="mt-1 text-[11px] text-text-dim font-mono">
-        {t("traces.pkt", { count: tag.packetCount })} · {t("traces.iata", { count: tag.iataCount })}
       </div>
       {tag.pathHashes?.length ? <TracePathPreview hashes={tag.pathHashes} snrs={tag.snrValues ?? []} /> : null}
     </div>
@@ -133,7 +132,7 @@ export function TraceList({ onAnalyze, onViewNode }: TraceListProps) {
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto flex flex-col">
           {isLoading || isResolved === false ? (
             <SkeletonRows rows={8} />
           ) : (tags?.length ?? 0) === 0 ? (

@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { DetailPanel, Section, Field } from "../../components/DetailPanel";
 import { Badge } from "../../components/Badge";
 import { Timestamp } from "../../components/Timestamp";
-import { InfoTip } from "../../components/InfoTip";
 import { CopyLinkButton } from "../../components/CopyLinkButton";
 import { ACTION_BUTTON_CLASS } from "../../components/action-button";
 import { getRouteEvidence, isNotFound } from "../../api/client";
@@ -61,7 +60,6 @@ export function RouteDetailPanel({ route: listed, iata, pathKey, onClose, onAnal
   const route = listed ?? first?.route;
   const reports = query.data?.pages.flatMap(page => page.items) ?? [];
   const capped = (query.data?.pages.length ?? 0) >= MAX_PAGES && query.data?.pages.at(-1)?.hasMore;
-  const width = first?.matchAvailable && first.hashSize ? first.hashSize : "—";
 
   return (
     <DetailPanel
@@ -104,7 +102,7 @@ export function RouteDetailPanel({ route: listed, iata, pathKey, onClose, onAnal
       </>}
 
       {keyed && !invalid && (route || query.isError) && (
-        <Section title={<span className="inline-flex items-center gap-1.5">{t("routeEvidence.recent")}<InfoTip text={[t("routeEvidence.match", { width }), t("routeEvidence.caution"), t("routeEvidence.retention")]} /></span>}>
+        <Section title={t("routeEvidence.recent")}>
           {query.isError && (
             <div role="alert" className="mb-2 space-y-2 text-sm text-warn">
               <p>{t(isNotFound(query.error) ? "routeEvidence.missing" : "routeEvidence.error")}</p>

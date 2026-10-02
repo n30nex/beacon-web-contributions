@@ -78,11 +78,6 @@ describe("route detail", () => {
     expect(await screen.findByText("1,234")).toBeInTheDocument();
   });
 
-  it("keeps the matching caveats in an info tip instead of inline text", async () => {
-    mount();
-    await screen.findByText("Garden");
-    expect(screen.getByRole("button", { name: /don't prove the same physical path/ })).toBeInTheDocument();
-  });
 
   it("opens the exact report and observer, and pins cursor pages", async () => {
     mount();

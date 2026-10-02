@@ -781,7 +781,8 @@
       "all": "Tous",
       "trace": "Trace",
       "ping": "Ping",
-      "empty": "Aucune trace"
+      "empty": "Aucune trace",
+      "hops": "{{count}} sauts"
     },
     "loadingPill": {
       "nodes": {
@@ -1119,7 +1120,7 @@
       "activity": "Activité en direct",
       "activityCounts": "Rapports {{count}} · Observateurs {{observers}} · 60 s",
       "incomplete": "Interruptions",
-      "controlsPan": "Glisser pour déplacer · Maj-glisser pour tourner · pincer ou défiler pour zoomer. Cliquez sur le nom d’une région pour la centrer ; utilisez Région pour l’isoler."
+      "controlsPan": "Glissez à gauche pour déplacer, à droite ou avec Maj pour pivoter. Molette pour zoomer. Flèches pour déplacer, Maj+flèches pour pivoter. Début recadre."
     }
   }
 }

@@ -198,7 +198,7 @@ describe("TraceList", () => {
     mockGetTraceDetail.mockResolvedValue(detail);
     renderTraces();
     expect(await screen.findByText("1 étiquette")).toBeInTheDocument();
-    expect(screen.getByText("2 paq. · 1 iata")).toBeInTheDocument();
+    expect(screen.getByText("2 paq. · 1 iata · 0 sauts")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tous" })).toBeInTheDocument();
     fireEvent.click(screen.getByText("3F2A11C0"));
     expect(await screen.findByText("Paquets")).toBeInTheDocument();

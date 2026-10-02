@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { ReactNode } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TopologyPage } from "../../../src/features/topology/TopologyPage";
 import type { WsManager } from "../../../src/api/ws-manager";
 import type { WsPacketObservation } from "../../../src/types/ws";
-import { getScopeCatalogues, getNodesPage } from "../../../src/api/client";
+import { getScopeCatalogues, getNodesPage, getKnownRoutesPage } from "../../../src/api/client";
 import i18n from "../../../src/i18n";
 
 vi.mock("../../../src/features/topology/TopologyCanvas", () => ({ TopologyCanvas: ({ controls, settings }: { controls: ReactNode; settings: ReactNode }) => <div>{controls}{settings}canvas</div> }));
@@ -40,6 +40,17 @@ describe("Topology live lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pause", exact: true })); expect(unsubscribe).toHaveBeenCalledTimes(1); expect(resolve).toHaveBeenLastCalledWith(false);
     fireEvent.click(screen.getByRole("button", { name: "Resume" })); expect(resolve).toHaveBeenLastCalledWith(true);
     unmount(); expect(unsubscribe).toHaveBeenCalledTimes(2); expect(resolve).toHaveBeenLastCalledWith(false);
+  });
+  it("refreshes route evidence when switching back to a cached window", async () => {
+    vi.mocked(getKnownRoutesPage).mockClear();
+    const manager = { getStatus: () => "connected", onStatusChange: () => vi.fn(), onLagged: () => vi.fn(), setResolvePath: vi.fn(), onPacketObservation: () => vi.fn() } as unknown as WsManager;
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><TopologyPage wsManager={manager} onViewNode={vi.fn()} onViewObserver={vi.fn()} onAnalyzePacket={vi.fn()} /></MemoryRouter></QueryClientProvider>);
+    await waitFor(() => expect(getKnownRoutesPage).toHaveBeenCalledTimes(1));
+    const range = screen.getByRole("combobox", { name: "Route history" });
+    fireEvent.change(range, { target: { value: "24h" } });
+    await waitFor(() => expect(getKnownRoutesPage).toHaveBeenCalledTimes(2));
+    fireEvent.change(range, { target: { value: "15m" } });
+    await waitFor(() => expect(getKnownRoutesPage).toHaveBeenCalledTimes(3));
   });
   it("does not fetch a retained inactive view and translates the controls", async () => {
     await i18n.changeLanguage("fr"); vi.mocked(getNodesPage).mockClear();

@@ -44,7 +44,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   const requestedWindow = params.get("topoWindow") || "15m";
   const routeWindow = Object.hasOwn(ROUTE_WINDOWS, requestedWindow) ? requestedWindow as keyof typeof ROUTE_WINDOWS : "15m";
   const data = useQuery({ queryKey: ["topology", iatas ?? "*"], queryFn: ({ signal }) => loadTopology(iatas, signal), enabled: active && resolved, staleTime: 120_000, refetchOnWindowFocus: false });
-  const routes = useQuery({ queryKey: ["topology-routes", iatas ?? "*", routeWindow], queryFn: ({ signal }) => loadTopologyRoutes(iatas, signal, Date.now(), ROUTE_WINDOWS[routeWindow]), enabled: active && resolved, staleTime: 120_000, refetchOnWindowFocus: false, placeholderData: keepPreviousData });
+  const routes = useQuery({ queryKey: ["topology-routes", iatas ?? "*", routeWindow], queryFn: ({ signal }) => loadTopologyRoutes(iatas, signal, Date.now(), ROUTE_WINDOWS[routeWindow]), enabled: active && resolved, staleTime: 0, refetchOnWindowFocus: false, placeholderData: keepPreviousData });
   const regions = useQuery({ queryKey: ["iatas"], queryFn: getIatas, staleTime: 300_000, enabled: active && resolved });
   const catalogues = useQuery({ queryKey: ["scope-catalogues"], queryFn: getScopeCatalogues, enabled: showInspector && resolved, staleTime: 300_000, refetchInterval: 300_000, refetchIntervalInBackground: false, refetchOnWindowFocus: false, retry: false });
   const graph = useMemo(() => buildTopology(data.data?.nodes ?? [], focus, routes.data?.routes ?? []), [data.data, focus, routes.data]);
@@ -139,8 +139,8 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
       <button className={button} disabled={data.isFetching || routes.isFetching || !active || !resolved} onClick={() => { data.refetch(); routes.refetch(); }}>{t("topology.refresh")}</button>
     </div>
   </>;
-  return <section ref={section} className="h-full w-full min-w-0 overflow-y-auto p-2 md:p-3" aria-label={t("topology.title")}>
-    <div className="mx-auto max-w-[2000px] space-y-3">
+  return <section ref={section} className="h-full min-h-0 w-full min-w-0 overflow-hidden p-2 md:p-3" aria-label={t("topology.title")}>
+    <div className="mx-auto flex h-full min-h-0 max-w-[2000px] flex-col gap-2">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
         <div className="flex items-center gap-3"><h1 className="text-lg font-semibold text-text-bright">{t("topology.title")}</h1>
           <span className={`flex items-center gap-1.5 text-xs ${paused || status !== "connected" ? "text-warn" : "text-green"}`} role="status"><span className="h-2 w-2 rounded-full bg-current" />{t(paused ? "topology.paused" : status === "connected" ? "topology.live" : "topology.reconnecting")}</span>
@@ -155,14 +155,14 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
       {data.isLoading && <p role="status" className="text-sm text-text-normal">{t("topology.loading")}</p>}
       {routes.isError && <p role="alert" className="text-xs text-warn">{t("topology.routesError")} <button className={button} onClick={() => routes.refetch()}>{t("topology.refresh")}</button></p>}
       {(data.data?.capped || routes.data?.capped || graph.linksCapped || live.capped) && <p className="text-xs text-warn">{t("topology.bounded")}</p>}
-      <div className={`grid min-w-0 items-start gap-3 ${showInspector && !mobile ? "md:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
+      <div className={`grid min-h-0 flex-1 min-w-0 items-stretch gap-3 ${showInspector && !mobile ? "md:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
         <TopologyCanvas graph={graph} traffic={traffic} colors={colors} selected={selected} onSelect={select} region={cameraRegion} onRegion={focusCamera} isolated={focus} onIsolate={onFocus}
           regions={(regions.data ?? []).filter(r => !allowedIatas || allowedIatas.includes(r.iata))} controls={controls} settings={settings}
           motion={animate && !reducedMotion && !paused} active={active} tick={live.tick} />
-        {showInspector && !mobile && <aside aria-label={t("topology.inspector")} className="min-w-0 overflow-y-auto rounded-xl border border-border bg-bg-surface md:max-h-[calc(100dvh-180px)]">{inspector}</aside>}
+        {showInspector && !mobile && <aside aria-label={t("topology.inspector")} className="min-h-0 min-w-0 overflow-y-auto rounded-xl border border-border bg-bg-surface">{inspector}</aside>}
       </div>
       {showInspector && mobile && <BottomSheet onClose={closeInspector} label={t("topology.inspector")}>{inspector}</BottomSheet>}
-      <details className="rounded-lg border border-border bg-bg-surface" onToggle={e => setActivityOpen(e.currentTarget.open)}>
+      <details className="max-h-[35%] shrink-0 overflow-y-auto rounded-lg border border-border bg-bg-surface" onToggle={e => setActivityOpen(e.currentTarget.open)}>
         <summary className="min-h-11 cursor-pointer content-center px-3 text-xs text-text-normal">
           <span className="font-semibold text-text-bright">{t("topology.activity")}</span>
           <span className="ml-3">{t("topology.activityCounts", { count: live.reports.length, observers: counts.observers.length })}</span>
@@ -183,7 +183,6 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
           </div>
         </div>}
       </details>
-      <details className="px-1 text-xs text-text-muted"><summary className="min-h-9 cursor-pointer content-center">{t("topology.about")}</summary><p className="max-w-4xl pb-3 leading-relaxed">{t("topology.definition")}</p></details>
     </div>
   </section>;
 }

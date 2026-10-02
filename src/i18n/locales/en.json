@@ -759,7 +759,8 @@
       "all": "All",
       "trace": "Trace",
       "ping": "Ping",
-      "empty": "No traces"
+      "empty": "No traces",
+      "hops": "{{count}} hops"
     },
     "loadingPill": {
       "nodes": {
@@ -1083,7 +1084,7 @@
       "activity": "Live activity",
       "activityCounts": "Reports {{count}} · Observers {{observers}} · 60s",
       "incomplete": "Gaps",
-      "controlsPan": "Drag to move · Shift-drag to rotate · pinch or scroll to zoom. Click a region label to focus; use Region to show it alone."
+      "controlsPan": "Left-drag to pan. Right-drag or Shift-drag to orbit. Scroll to zoom. Arrow keys pan; Shift+arrows orbit. Home fits the view."
     }
   }
 }
