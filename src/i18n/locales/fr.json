@@ -519,7 +519,9 @@
       "empty": "Aucune observation de ce trajet n’est encore conservée. Les plus anciennes ont pu expirer.",
       "more": "Charger plus",
       "cap": "Affichage des 500 observations les plus récentes.",
-      "inspect": "Examiner le paquet"
+      "inspect": "Examiner le paquet",
+      "invalidPath": "Chemin partagé invalide. Rouvrez le trajet pour utiliser sa représentation actuelle.",
+      "invalid": "Période partagée invalide. Choisissez une période pour continuer."
     },
     "channelMessages": {
       "select": "Choisir un canal",

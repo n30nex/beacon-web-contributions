@@ -505,7 +505,9 @@
       "empty": "No observations on this route are still kept. Older ones may have expired.",
       "more": "Load more",
       "cap": "Showing the newest 500 observations.",
-      "inspect": "Inspect packet"
+      "inspect": "Inspect packet",
+      "invalidPath": "Invalid shared path. Open the route again to use its current representation.",
+      "invalid": "Invalid shared time window. Choose a range to continue."
     },
     "channelMessages": {
       "select": "Select a channel",
