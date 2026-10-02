@@ -62,7 +62,10 @@ export function MeshTab({ range, onSelectObserver, wsManager }: MeshTabProps) {
   const nodeTypesData = readyData(nodeTypes);
 
   const obs = useMemo(() => aggregateByHour(observationsData ?? []), [observationsData]);
-  const obsOption = useMemo(() => observationsAreaOption(obs, colors), [obs, colors]);
+  const obsOption = useMemo(
+    () => observationsAreaOption(obs, colors, { observations: t("mesh.observations"), uniquePackets: t("charts.uniquePackets") }),
+    [obs, colors, t],
+  );
 
   const nodeRows = useMemo(
     () =>
@@ -109,7 +112,10 @@ export function MeshTab({ range, onSelectObserver, wsManager }: MeshTabProps) {
     () => aggregatePresets(radioPresetsData ?? []).slice(0, 8).map((r) => ({ name: formatPreset(r.preset), nodes: r.nodes, observers: r.observers })),
     [radioPresetsData],
   );
-  const presetsOption = useMemo(() => presetBarsOption(presetRows, colors), [presetRows, colors]);
+  const presetsOption = useMemo(
+    () => presetBarsOption(presetRows, colors, undefined, { nodes: t("mesh.nodes"), observers: t("mesh.observers") }),
+    [presetRows, colors, t],
+  );
 
   const scopeRows = useMemo(
     () => [...(scopesData ?? [])].sort((a, b) => b.packetCount - a.packetCount),
@@ -121,7 +127,7 @@ export function MeshTab({ range, onSelectObserver, wsManager }: MeshTabProps) {
   const observerSpark = useMemo(() => kpiObs.slice(-24).map((p) => p.activeObservers), [kpiObs]);
 
   // top-row KPIs are the overview endpoint's fixed 24h snapshot; range only drives the charts below
-  const ovWindow = `${ov?.windowHours ?? 24}h`;
+  const ovWindow = t("mesh.lastHours", { hours: ov?.windowHours ?? 24 });
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-[1200px] flex-col gap-3.5 p-4">

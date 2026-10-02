@@ -4,6 +4,7 @@ import { formatSnr, snrLevel, formatPropagation, SIGNAL_LEVEL_CLASSES, SIGNAL_LE
 import { Timestamp } from "../../components/Timestamp";
 import { PathData } from "./PathData";
 import { IataChip } from "../../components/IataChip";
+import { useTranslation } from "react-i18next";
 
 // single observation with signal stats and resolved path
 
@@ -13,13 +14,14 @@ export function ObservationCard({ observation: obs, selected, onClick, onViewNod
   selectLabel?: string;
   actions?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const level = snrLevel(obs.snr);
 
   return (
     <div
       className={`bg-bg-base border border-border rounded px-3 py-2.5 border-l-2 transition-colors ${
         selected
-          ? "border-l-secondary bg-secondary/5"
+          ? "border-l-primary bg-primary/6"
           // the edge mirrors the table's SNR coloring, so the list scans as a signal column
           : level
             ? SIGNAL_LEVEL_BORDER_CLASSES[level]
@@ -55,18 +57,18 @@ export function ObservationCard({ observation: obs, selected, onClick, onViewNod
             </span>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-text-dim text-[10px] font-medium uppercase tracking-wider">Prop</span>
+            <span className="text-text-dim text-[10px] font-medium uppercase tracking-wider">{t("observation.prop")}</span>
             <span className="font-medium text-text-normal">{formatPropagation(obs.propagationTimeMs)}</span>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-text-dim text-[10px] font-medium uppercase tracking-wider">Hops</span>
+            <span className="text-text-dim text-[10px] font-medium uppercase tracking-wider">{t("observerPage.hops")}</span>
             <span className="font-medium text-text-normal">{obs.pathLength.hopCount}</span>
           </div>
         </div>
 
         {obs.radio && (
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5 font-mono text-[11px] text-text-muted">
-            <span className="text-text-dim uppercase text-[10px] font-medium tracking-wider mr-0.5">Radio</span>
+            <span className="text-text-dim uppercase text-[10px] font-medium tracking-wider mr-0.5">{t("observerPage.radio")}</span>
             {obs.radio.freqMhz != null && <span>{obs.radio.freqMhz} MHz</span>}
             {obs.radio.spreadFactor != null && <><span className="text-[6px] text-border" aria-hidden>·</span><span>SF{obs.radio.spreadFactor}</span></>}
             {obs.radio.bandwidthKhz != null && <><span className="text-[6px] text-border" aria-hidden>·</span><span>{obs.radio.bandwidthKhz} kHz</span></>}
@@ -80,18 +82,18 @@ export function ObservationCard({ observation: obs, selected, onClick, onViewNod
           {isTrace ? (
             // TRACE path bytes are per-hop SNR samples, not hop hashes — show them raw, never as a resolvable path.
             <>
-              <span className="text-text-dim uppercase text-[10px] font-medium tracking-wider mr-1">Path SNR</span>
+              <span className="text-text-dim uppercase text-[10px] font-medium tracking-wider mr-1">{t("observation.pathSnr")}</span>
               <span className="text-text-normal break-all">{obs.pathBytes.toUpperCase()}</span>
             </>
           ) : (
             <>
-              <span className="text-text-dim uppercase text-[10px] font-medium tracking-wider mr-1">Path</span>
+              <span className="text-text-dim uppercase text-[10px] font-medium tracking-wider mr-1">{t("observation.path")}</span>
               <PathData pathBytes={obs.pathBytes} hashSize={obs.pathLength.hashSize} resolvedPath={obs.resolvedPath} size="sm" onViewNode={onViewNode} />
             </>
           )}
         </div>
       )}
-      {actions && <div className="mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-border-subtle pt-1.5" onClick={(e) => e.stopPropagation()}>{actions}</div>}
+      {actions && <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 border-t border-border-subtle pt-1.5" onClick={(e) => e.stopPropagation()}>{actions}</div>}
     </div>
   );
 }

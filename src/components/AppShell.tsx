@@ -14,7 +14,8 @@ import { LanguageOptions, LanguagePicker } from "./LanguagePicker";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { BeaconWordmark } from "./BeaconWordmark";
 import { getIatas } from "../api/client";
-import { ENABLED_TABS, ENABLED_THEME_IDS, selectableThemes, APP_NAME, GITHUB_URL } from "../lib/constants";
+import { ENABLED_TABS, ENABLED_THEME_IDS, selectableThemes, APP_NAME, GITHUB_URL, BANNER } from "../lib/constants";
+import { InstanceBanner } from "./InstanceBanner";
 import type { WsManager } from "../api/ws-manager";
 
 // header widgets: WS status, region picker, theme picker
@@ -28,12 +29,12 @@ function LiveBadge({ wsManager, compact = false }: { wsManager: WsManager; compa
     if (status !== "connecting") return;
     function update() {
       const staleSec = Math.floor((Date.now() - wsManager.getLastEventTimestamp()) / 1000);
-      setStaleStr(staleSec > 60 ? `${Math.floor(staleSec / 60)}m` : `${staleSec}s`);
+      setStaleStr(staleSec > 60 ? t("timestamp.unit.m", { count: Math.floor(staleSec / 60) }) : t("timestamp.unit.s", { count: staleSec }));
     }
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [status, wsManager]);
+  }, [status, wsManager, t]);
 
   if (status === "connected") {
     if (compact) return (
@@ -105,7 +106,7 @@ function CheckBox({ checked }: { checked: boolean }) {
   );
 }
 
-// Compact header summary of the active selection, e.g. "ALL", "YVR, YYJ", "2 regions", "1 region · 3 IATA".
+// Compact header summary of the active selection, e.g. "ALL", "YVR, YYJ", "2 regions", "1 region · 3 areas".
 function regionSummaryLabel(selection: RegionSelection, t: TFunction): string {
   if (isAllRegions(selection)) return t("region.allShort");
   const parts: string[] = [];
@@ -134,7 +135,7 @@ function RegionSelector() {
           className="flex items-center gap-1.5 bg-bg-raised border border-border rounded px-3 py-1 text-text-bright font-mono text-xs font-semibold hover:border-text-dim/30 transition-colors"
           onClick={toggle}
         >
-          <span className="text-text-muted font-normal text-[11px]">{t("region.label")}</span>
+          <span className="text-text-muted font-normal text-[11px] uppercase">{t("region.label")}</span>
           {regionSummaryLabel(selection, t)}
           <span className="text-text-dim text-[11px]">▾</span>
         </button>
@@ -213,7 +214,7 @@ function RegionSelectorPanel() {
   return (
     <>
       <div className="sticky -top-1 z-10 -mt-1 bg-bg-raised px-2 pt-1 pb-1.5">
-        {/* Keep focused text at 16px so iOS Safari does not zoom the page. */}
+        {/* 16px on phones so iOS Safari does not zoom the page on focus. */}
         <input
           ref={inputRef}
           type="text"
@@ -228,7 +229,7 @@ function RegionSelectorPanel() {
           }}
           aria-label={t("region.filter")}
           placeholder={t("region.filter")}
-          className="w-full text-[16px] font-mono bg-bg-surface border border-border rounded px-2 py-1 text-text-bright placeholder:text-text-dim"
+          className="w-full text-[16px] sm:text-[11px] font-mono bg-bg-surface border border-border rounded px-2 py-1 text-text-bright placeholder:text-text-dim"
         />
       </div>
 
@@ -276,7 +277,7 @@ function RegionSelectorPanel() {
         <>
           <div className={`px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wide text-text-dim ${
             hasRowsAbove ? "border-t border-border-subtle mt-1" : ""
-          }`}>IATA</div>
+          }`}>{t("region.areaGroup")}</div>
           {iatas ? (
             shownIatas.map((i) => {
               const checked = selection.iatas.includes(i.iata);
@@ -363,12 +364,13 @@ function ThemeOptions({ onPick }: { onPick?: () => void }) {
 }
 
 function GitHubLink() {
+  const { t } = useTranslation();
   return (
     <a
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="GitHub"
+      aria-label={t("header.github")}
       className="text-text-muted hover:text-text-normal transition-colors shrink-0"
     >
       <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true">
@@ -430,6 +432,7 @@ export function AppShell({ activeTab, onTabChange, wsManager, children }: AppShe
   const isMobile = useIsMobile();
   return (
     <div className="flex flex-col h-dvh">
+      <InstanceBanner text={BANNER} />
       {isMobile ? (
         <header className="flex items-center gap-2 px-3 py-1.5 min-h-[42px] bg-bg-surface border-b border-border shrink-0">
           <BeaconWordmark iconSize={20} textClassName="text-sm" className="shrink-0" />

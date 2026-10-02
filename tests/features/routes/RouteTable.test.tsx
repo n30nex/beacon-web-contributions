@@ -15,6 +15,7 @@ import {
   getRegion,
 } from "../../../src/api/client";
 import type { KnownRoute, CrossIATARoute } from "../../../src/types/api";
+import i18n from "../../../src/i18n";
 
 vi.mock("../../../src/api/client", () => ({
   getKnownRoutesPage: vi.fn(),
@@ -25,7 +26,7 @@ vi.mock("../../../src/api/client", () => ({
   getRegion: vi.fn(),
 }));
 
-vi.mock("../../../src/features/routes/RouteEvidencePanel", () => ({ RouteEvidencePanel: ({ pathKey }: { pathKey: string }) => <div data-testid="saved-route-selection">{pathKey}</div> }));
+vi.mock("../../../src/features/routes/RouteDetailPanel", () => ({ RouteDetailPanel: ({ pathKey }: { pathKey?: string }) => <div data-testid="saved-route-selection">{pathKey}</div> }));
 
 const mockGetKnownRoutesPage = vi.mocked(getKnownRoutesPage);
 const mockSearchKnownRoutes = vi.mocked(searchKnownRoutes);
@@ -45,7 +46,7 @@ function renderTable(selection = ALL_REGIONS) {
   render(<RouteTable />, { wrapper });
 }
 
-const openIataPicker = () => fireEvent.click(screen.getByText("IATA"));
+const openIataPicker = () => fireEvent.click(screen.getByText("Areas"));
 const checkIata = (code: string) => fireEvent.click(screen.getByRole("option", { name: new RegExp(code) }));
 
 beforeEach(() => {
@@ -190,4 +191,13 @@ it("preserves a shared saved route while a named region resolves", async () => {
   await waitFor(() => expect(getKnownRoutesPage).toHaveBeenCalledWith(expect.objectContaining({ iata: "YOW" })));
   expect(screen.getByTestId("saved-route-selection")).toHaveTextContent("shared-key");
   client.clear();
+});
+
+it("translates the search bar, headers and empty state", async () => {
+  await i18n.changeLanguage("fr");
+  renderTable();
+  expect(await screen.findByText("Chercher un trajet")).toBeInTheDocument();
+  expect(screen.getByLabelText("Hash de départ")).toHaveAttribute("placeholder", "hash de départ");
+  expect(screen.getByRole("button", { name: "Rechercher" })).toBeInTheDocument();
+  expect(await screen.findByText("Aucun trajet")).toBeInTheDocument();
 });

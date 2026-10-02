@@ -126,7 +126,7 @@ export function getRegion(regionId: number): Promise<Region> {
 }
 
 // Preserve the server cursor rather than deriving it from the displayed channel order.
-export function getChannels(params?: { iatas?: string[]; limit?: number; cursor?: number | string }): Promise<ChannelPage> {
+export function getChannels(params?: { iatas?: string[]; limit?: number; cursor?: number | string; keyKnown?: boolean }): Promise<ChannelPage> {
   const iatas = params?.iatas ?? [];
   return request("/channels", {
     iata: iatas.length === 1 ? iatas[0] : undefined,
@@ -134,6 +134,7 @@ export function getChannels(params?: { iatas?: string[]; limit?: number; cursor?
     limit: params?.limit ?? DEFAULT_PAGE_SIZE,
     cursor: typeof params?.cursor === "number" ? params.cursor : undefined,
     pageCursor: typeof params?.cursor === "string" ? params.cursor : undefined,
+    keyKnown: params?.keyKnown === undefined ? undefined : String(params.keyKnown),
   });
 }
 
@@ -159,10 +160,10 @@ export function getBrokers(): Promise<BrokerStatus[]> {
   return request("/brokers");
 }
 
-// The authoritative list of configured transport scope names (e.g. "#bc", "#west"), used to populate
-// the scope filter dropdowns. The no-param /scopes endpoint returns the names directly.
-export function getScopes(): Promise<string[]> {
-  return request("/scopes");
+// Transport scope names (e.g. "#bc", "#west") for the scope filter dropdowns. With IATAs the server
+// returns only that region's scopes (manual config + its MeshMapper catalogue); bare, every stored name.
+export function getScopes(iatas?: string[]): Promise<string[]> {
+  return request("/scopes", { iatas: iatasParam(iatas) });
 }
 
 // Wrap a bare-array endpoint into a CursorPage so it can drive the cursor-paginated hooks. A page that

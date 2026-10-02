@@ -129,6 +129,14 @@ describe("getScopes", () => {
     expect(url).not.toContain("?"); // no query params on the authoritative list
     expect(scopes).toEqual(["#bc", "#west"]);
   });
+
+  it("asks for the selected region's scopes by IATA", async () => {
+    const getUrl = mockFetchOnce(["#yow"]);
+
+    await getScopes(["YOW", "YYZ"]);
+
+    expect(new URL(getUrl()).searchParams.get("iatas")).toBe("YOW,YYZ");
+  });
 });
 
 describe("getKnownRoutesPage", () => {
@@ -242,6 +250,15 @@ describe("getChannels", () => {
     const url = new URL(getUrl());
     expect(url.searchParams.get("iatas")).toBe("YOW,YYZ");
     expect(url.searchParams.has("iata")).toBe(false);
+  });
+
+  it.each([true, false])("sends keyKnown=%s and omits it when unset", async (keyKnown) => {
+    const getUrl = mockFetchOnce({ items: [] });
+    await getChannels({ keyKnown });
+    expect(new URL(getUrl()).searchParams.get("keyKnown")).toBe(String(keyKnown));
+    const getUnset = mockFetchOnce({ items: [] });
+    await getChannels();
+    expect(new URL(getUnset()).searchParams.has("keyKnown")).toBe(false);
   });
 
   it("omits both iata params for all regions", async () => {
