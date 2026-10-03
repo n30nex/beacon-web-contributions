@@ -30,7 +30,7 @@ describe("observer summary card notes", () => {
       summary: { recordedPackets: 14, lastCompleteHour: 6, lastCompleteHourEnd: 6 * hour },
     } as unknown as ObserverActivity;
     render(<ObserverSummary observer={observer} activity={activity} points={[]} />);
-    for (const label of ["Recorded packets", "Packets last hour"]) {
+    for (const label of ["Packets heard", "Packets last hour"]) {
       expect(screen.getByText(label).closest("li")!.querySelectorAll("polyline")).toHaveLength(2);
     }
   });
