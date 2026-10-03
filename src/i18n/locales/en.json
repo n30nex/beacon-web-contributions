@@ -58,6 +58,7 @@
       "loadingDots": "Loading...",
       "copyLink": "Copy link",
       "copied": "Copied",
+      "copyFailed": "Copy failed",
       "filters": "Filters",
       "closeFilters": "Close filters",
       "clearAll": "Clear all",
@@ -692,7 +693,6 @@
     },
     "observation": {
       "prop": "Prop",
-      "pathSnr": "Path SNR",
       "path": "Path",
       "observer": "Observer",
       "area": "Area",

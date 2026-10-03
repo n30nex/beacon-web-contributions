@@ -1,5 +1,5 @@
 import type { ChartColors } from "../stats/chartTheme";
-import { getKnownRoutesPage, getNodesPage } from "../../api/client";
+import { getKnownRoutesPage, getNodesPage, type RouteCursor } from "../../api/client";
 import type { NodeSummary } from "../nodes/types";
 import type { KnownRoute, ResolvedHop } from "../../types/api";
 import type { WsPacketObservation } from "../../types/ws";
@@ -40,15 +40,17 @@ export async function loadTopology(iatas: string[] | undefined, signal: AbortSig
 export async function loadTopologyRoutes(iatas: string[] | undefined, signal: AbortSignal, now = Date.now(), window = ROUTE_WINDOWS["15m"] as number) {
   signal.throwIfAborted();
   if (iatas?.length === 0) return { routes: [], capped: false };
-  const routes = new Map<number, KnownRoute>(), cursors = new Set<number>();
-  let cursor: number | undefined;
+  const routes = new Map<number, KnownRoute>(), cursors = new Set<string>();
+  let cursor: RouteCursor | undefined;
   for (let page = 0; page < ROUTE_CAP / 200; page++) {
     signal.throwIfAborted();
     const result = await getKnownRoutesPage({ iata: iatas?.length === 1 ? iatas[0] : undefined, cursor, limit: 200 }, signal);
     for (const route of result.items) if (route.lastSeen >= now - window && (!iatas || iatas.includes(route.iata))) routes.set(route.id, route);
     if (!result.hasMore || result.items.some(r => r.lastSeen < now - window)) return { routes: [...routes.values()], capped: false };
-    if (result.nextCursor == null || cursors.has(result.nextCursor)) break;
-    cursor = result.nextCursor; cursors.add(cursor);
+    if (result.nextCursor == null) break;
+    const key = `${result.nextCursor.lastSeen}:${result.nextCursor.id}`;
+    if (cursors.has(key)) break;
+    cursor = result.nextCursor; cursors.add(key);
   }
   return { routes: [...routes.values()], capped: true };
 }

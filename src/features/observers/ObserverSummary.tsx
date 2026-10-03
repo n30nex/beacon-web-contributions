@@ -42,12 +42,12 @@ export function ObserverSummary({ observer, activity, points, telemetryInterval 
   ] as const).filter((item): item is readonly [string, string] => !!item[1]);
   const step = intervalToMs(activity?.interval ?? "1h") ?? 3_600_000;
   const rawActivity = activity?.points ?? [];
-  const activityPoints = activity?.windowStart != null && activity.windowEnd != null ? fillActivity(rawActivity, step, { start: activity.windowStart, end: activity.windowEnd }) : rawActivity;
-  const hourly = new Map<number, number>();
+  const activityPoints = activity?.windowStart != null && activity.windowEnd != null ? fillActivity(rawActivity, step, { start: activity.windowStart, end: activity.windowEnd }, activity) : rawActivity;
+  const hourly = new Map<number, number | null>();
   if (step <= 3_600_000) for (const point of activityPoints) {
     if (summary && point.t >= summary.lastCompleteHourEnd) continue;
     const hour = Math.floor(point.t / 3_600_000) * 3_600_000;
-    hourly.set(hour, (hourly.get(hour) ?? 0) + point.observations);
+    hourly.set(hour, point.observations === null || hourly.get(hour) === null ? null : (hourly.get(hour) ?? 0) + point.observations);
   }
   const packetSeries = activityPoints.map(p => p.observations);
   const trends: Record<string, (number | null)[]> = {
@@ -129,7 +129,7 @@ export function ObserverSummary({ observer, activity, points, telemetryInterval 
           <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</span>
           {title ? <Tooltip label={title}>{shown}</Tooltip> : shown}
           <div className="w-full max-w-56" title={label}>
-            {key === "lastPacket" ? <PresenceStrip hours={packetSeries.map(n => n > 0)} color="var(--color-primary)" /> : <Sparkline values={trends[key] ?? []} times={key === "records" ? activityPoints.map(p => p.t) : key === "lastHour" ? [...hourly.keys()] : points.map(p => p.t)} gapMs={(intervalToMs(telemetryInterval) ?? 3_600_000) * 1.5} color={key === "battery" ? "var(--color-green)" : key === "noise" ? "var(--color-secondary)" : "var(--color-primary)"} />}
+            {key === "lastPacket" ? <PresenceStrip hours={packetSeries.map(n => n != null && n > 0)} color="var(--color-primary)" /> : <Sparkline values={trends[key] ?? []} times={key === "records" ? activityPoints.map(p => p.t) : key === "lastHour" ? [...hourly.keys()] : points.map(p => p.t)} gapMs={(key === "records" ? step : key === "lastHour" ? 3_600_000 : intervalToMs(telemetryInterval) ?? 3_600_000) * 1.5} color={key === "battery" ? "var(--color-green)" : key === "noise" ? "var(--color-secondary)" : "var(--color-primary)"} />}
           </div>
         </li>;
       })}

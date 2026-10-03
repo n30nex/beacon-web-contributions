@@ -108,7 +108,7 @@ describe("3D topology evidence and bounds", () => {
     const routes = [route(1, ["b", "c"], 100_000_000), route(2, ["a", "missing", "c"], 100_000_000)];
     const withRoutes = buildTopology([a, b, c], "", routes);
     expect(withRoutes.links).toEqual([["a", "b"], ["b", "c"]]); expect([...withRoutes.routeLinks]).toEqual(["b|c"]);
-    vi.mocked(getKnownRoutesPage).mockResolvedValue({ items: [...routes, route(3, ["a", "c"], 0)], hasMore: true, nextCursor: 0 });
+    vi.mocked(getKnownRoutesPage).mockResolvedValue({ items: [...routes, route(3, ["a", "c"], 0)], hasMore: true, nextCursor: { lastSeen: 0, id: 3 } });
     const controller = new AbortController();
     expect(await loadTopologyRoutes(["YOW"], controller.signal, 100_000_001)).toEqual({ routes, capped: false });
     expect(getKnownRoutesPage).toHaveBeenCalledTimes(1); expect(getKnownRoutesPage).toHaveBeenCalledWith({ iata: "YOW", cursor: undefined, limit: 200 }, controller.signal);
@@ -117,6 +117,16 @@ describe("3D topology evidence and bounds", () => {
   it("isolates multi-region nodes into the requested region", () => {
     const multi = { ...a, iatas: [{ iata: "YOW", lastHeard: 1 }, { iata: "YKF", lastHeard: 100 }] };
     expect(buildTopology([multi], "YOW").nodes[0]!.region).toBe("YOW");
+  });
+  it("loads routes sharing a timestamp by ID and stops a repeated composite cursor", async () => {
+    vi.mocked(getKnownRoutesPage).mockClear()
+      .mockResolvedValueOnce({ items: [], hasMore: true, nextCursor: { lastSeen: 1000, id: 10 } })
+      .mockResolvedValueOnce({ items: [], hasMore: true, nextCursor: { lastSeen: 1000, id: 9 } })
+      .mockResolvedValueOnce({ items: [], hasMore: true, nextCursor: { lastSeen: 1000, id: 9 } });
+    const signal = new AbortController().signal;
+    expect(await loadTopologyRoutes(undefined, signal, 1001)).toEqual({ routes: [], capped: true });
+    expect(getKnownRoutesPage).toHaveBeenCalledTimes(3);
+    expect(getKnownRoutesPage).toHaveBeenNthCalledWith(3, { iata: undefined, cursor: { lastSeen: 1000, id: 9 }, limit: 200 }, signal);
   });
   it("does not scan global routes for an empty region", async () => {
     vi.mocked(getKnownRoutesPage).mockClear();
