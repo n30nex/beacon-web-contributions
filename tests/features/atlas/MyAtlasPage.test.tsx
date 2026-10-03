@@ -158,6 +158,14 @@ describe("My Atlas", () => {
 });
 
 describe("identity recovery", () => {
+  it("keeps a saved card available for telemetry until its full identity advertises again", async () => {
+    vi.mocked(api.getNode).mockRejectedValueOnce(Object.assign(new Error("missing"), { status: 404 }));
+    vi.mocked(api.getNodesPage).mockResolvedValueOnce({ items: [], nextCursor: null, hasMore: false });
+    const result = await loadAtlasNode(pin);
+    expect(result.node).toBeUndefined();
+    expect(result.page.items).toEqual([]);
+    expect(api.getNodeObservations).not.toHaveBeenCalled();
+  });
   it("recovers a changed server ID using the exact full public key", async () => {
     vi.mocked(api.getNode).mockRejectedValueOnce(Object.assign(new Error("missing"), { status: 404 }));
     vi.mocked(api.getNodesPage).mockResolvedValue({ items: [{ ...node, id: second.id }], nextCursor: null, hasMore: false });

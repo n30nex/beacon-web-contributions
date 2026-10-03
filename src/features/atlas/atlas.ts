@@ -36,7 +36,7 @@ export async function loadAtlasNode(pin: AtlasPin, signal?: AbortSignal) {
     const page = await getNodesPage(undefined, { pubkeyPrefix: pin.publicKey, limit: 2 }, signal);
     const match = page.items.find(row => row.publicKey.toLowerCase() === pin.publicKey);
     if (!match) {
-      if (!pin.id) return { node: undefined, page: { items: [], hasMore: false, nextCursor: null } };
+      if (!node) return { node: undefined, page: { items: [], hasMore: false, nextCursor: null } };
       throw new Error("Atlas identity unavailable");
     }
     node = await getNode(match.id, signal);
