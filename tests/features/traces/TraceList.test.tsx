@@ -63,6 +63,21 @@ describe("TraceList", () => {
     expect(screen.queryByText("Packets")).not.toBeInTheDocument();
   });
 
+  it("keeps TRACE and PING cards from shrinking in the scrollable list", async () => {
+    mockGetTraces.mockResolvedValue([
+      tag("3f2a11c0", 2, { traceType: "TRACE", pathHashes: ["a1", "b2"], snrValues: [-7.5, 0] }),
+      tag("9b40de22", 1, { traceType: "PING", pathHashes: ["c3"], snrValues: [] }),
+    ]);
+
+    renderTraces();
+
+    // jsdom cannot measure layout; guard the CSS contract on each row root.
+    for (const traceTag of ["3F2A11C0", "9B40DE22"]) {
+      const card = (await screen.findByText(traceTag)).closest('[role="button"]');
+      expect(card).toHaveClass("shrink-0");
+    }
+  });
+
   it("opens the detail panel with a Packets section listing the trace's packets when a card is clicked", async () => {
     mockGetTraces.mockResolvedValue([tag("3f2a11c0", 2)]);
     mockGetTraceDetail.mockResolvedValue(detail);

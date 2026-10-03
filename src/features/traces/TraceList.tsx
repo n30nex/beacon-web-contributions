@@ -62,7 +62,7 @@ function TraceTagCard({ tag, selected, onSelect }: {
   return (
     <div
       role="button"
-      className={`min-h-11 bg-bg-surface border-b px-3 py-1.5 cursor-pointer ${
+      className={`shrink-0 min-h-11 bg-bg-surface border-b px-3 py-1.5 cursor-pointer ${
         selected ? "border-primary bg-primary/10" : "border-border hover:border-text-dim/30 hover:bg-bg-raised/50"
       }`}
       onClick={() => onSelect(tag.traceTag)}
