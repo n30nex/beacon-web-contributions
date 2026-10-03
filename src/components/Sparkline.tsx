@@ -52,4 +52,3 @@ export function PresenceStrip({ hours, color }: { hours: boolean[]; color: strin
     </svg>
   );
 }
-
