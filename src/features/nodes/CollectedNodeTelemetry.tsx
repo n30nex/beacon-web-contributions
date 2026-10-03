@@ -12,12 +12,14 @@ export function CollectedNodeTelemetry({ publicKey, active }: { publicKey: strin
   const data = useQuery({ queryKey: ["collected-node-telemetry", key], queryFn: ({ signal }) => getCollectedNodeTelemetry(key, signal),
     enabled: active && /^[0-9a-f]{64}$/.test(key), staleTime: 300_000, retry: false, refetchInterval: 300_000, refetchIntervalInBackground: false });
   const samples = (data.data?.items ?? []).filter(sample => sample.nodeKey === key).sort((a,b) => a.receivedAt-b.receivedAt);
-  if (!samples.length) return null;
+  if (!samples.length) return data.isError ? <section aria-label={t("nodeTelemetry.collected")} className="mb-3 text-xs text-warn">
+    <p role="status">{t("nodeTelemetry.loadError")} <button type="button" className="min-h-11 underline" onClick={() => void data.refetch()}>{t("atlas.retry")}</button></p>
+  </section> : null;
   const metrics = new Map<string, { label: string; collector: string; unit: string; times: number[]; values: number[]; gapMs: number }>();
   for (const sample of samples) {
     const readings = [
-      ...Object.entries(sample.values).filter(([name]) => name in statusUnits).map(([name, value]) => ({ name, unit: statusUnits[name]!, value: name === "batteryMv" ? value / 1000 : value, channel: null })),
-      ...sample.sensors.map(sensor => ({ name: sensor.kind === "voltage" && sensor.channel === 1 ? "batteryMv" : sensor.kind, value: sensor.value, unit: sensor.unit, channel: sensor.kind === "voltage" && sensor.channel === 1 ? null : sensor.channel })),
+      ...Object.entries(sample.values ?? {}).filter(([name]) => name in statusUnits).map(([name, value]) => ({ name, unit: statusUnits[name]!, value: name === "batteryMv" ? value / 1000 : value, channel: null })),
+      ...(sample.sensors ?? []).map(sensor => ({ name: sensor.kind === "voltage" && sensor.channel === 1 ? "batteryMv" : sensor.kind, value: sensor.value, unit: sensor.unit, channel: sensor.kind === "voltage" && sensor.channel === 1 ? null : sensor.channel })),
     ];
     for (const reading of readings) {
       if (!Number.isFinite(reading.value)) continue;

@@ -1125,6 +1125,7 @@
       "controlsPan": "Glissez à gauche pour déplacer, à droite ou avec Maj pour pivoter. Molette pour zoomer. Flèches pour déplacer, Maj+flèches pour pivoter. Début recadre."
     },
     "nodePage": {
+      "loadError": "Impossible de charger les détails du nœud.",
       "title": "Détails du nœud",
       "back": "Nœuds",
       "open": "Ouvrir la page complète ↗",
@@ -1139,6 +1140,7 @@
       "neighbors": "Voisins · {{count}}"
     },
     "nodeTelemetry": {
+      "loadError": "Impossible de charger la télémétrie du répéteur.",
       "collected": "Télémétrie du répéteur · 30 derniers jours",
       "collector": "Collecteur {{key}}",
       "channel": "Canal {{channel}}",

@@ -76,8 +76,8 @@ export interface CollectedNodeSample {
   radioKey: string;
   receivedAt: number;
   intervalHours?: number;
-  values: Record<string, number>;
-  sensors: { channel: number; kind: string; value: number; unit: string }[];
+  values?: Record<string, number> | null;
+  sensors?: { channel: number; kind: string; value: number; unit: string }[] | null;
 }
 
 export async function getCollectedNodeTelemetry(key: string, signal?: AbortSignal): Promise<{ items: CollectedNodeSample[]; limit: number }> {

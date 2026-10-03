@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getNode, getNodeNeighbors, getNodeObservations } from "../../api/client";
+import { getNode, getNodeNeighbors, getNodeObservations, isNotFound } from "../../api/client";
 import { Timestamp } from "../../components/Timestamp";
 import { CopyLinkButton } from "../../components/CopyLinkButton";
 import { Sparkline } from "../../components/Sparkline";
@@ -20,9 +20,9 @@ export function NodePage({ nodeId, onViewNode, onViewObserver, onAnalyzePacket }
   const range: AtlasRange = params.get("nodeRange") === "3d" ? "3d" : "24h";
   const valid = /^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(nodeId);
   const now = useTick(60_000);
-  const detail = useQuery({ queryKey: ["node", nodeId], queryFn: ({ signal }) => getNode(nodeId, signal), enabled: valid, staleTime: 30_000 });
+  const detail = useQuery({ queryKey: ["node", nodeId], queryFn: ({ signal }) => getNode(nodeId, signal), enabled: valid, staleTime: 30_000, refetchInterval: 60_000, refetchIntervalInBackground: false });
   const reports = useQuery({ queryKey: ["node-page-reports", nodeId], queryFn: ({ signal }) => getNodeObservations(nodeId, { limit: REPORT_LIMIT }, signal), enabled: valid && !!detail.data, staleTime: 60_000, refetchInterval: 60_000, refetchIntervalInBackground: false });
-  const neighbors = useQuery({ queryKey: ["node-neighbors", nodeId], queryFn: () => getNodeNeighbors(nodeId), enabled: valid && !!detail.data, staleTime: 120_000 });
+  const neighbors = useQuery({ queryKey: ["node-neighbors", nodeId], queryFn: () => getNodeNeighbors(nodeId), enabled: valid && !!detail.data, staleTime: 120_000, refetchInterval: 120_000, refetchIntervalInBackground: false });
   const node = detail.data;
   const sample = summarizeReports(reports.data?.items ?? [], range, now);
   const ordered = [...sample.reports].reverse();
@@ -37,7 +37,8 @@ export function NodePage({ nodeId, onViewNode, onViewObserver, onAnalyzePacket }
         <button className={ACTION_BUTTON_CLASS} onClick={() => setParams(previous => { const next = new URLSearchParams(previous); next.delete("nodePage"); next.delete("nodeRange"); return next; })}>← {t("nodePage.back")}</button>
         <CopyLinkButton params={{ tab: "Nodes", nodePage: nodeId }} />
       </header>
-      {!valid || detail.isError ? <p role="alert">{t("nodeDetail.notFound")}</p> : detail.isPending ? <p role="status">{t("common.loading")}</p> : node && <>
+      {!valid || (detail.isError && !node) ? <p role="alert">{t(!valid || isNotFound(detail.error) ? "nodeDetail.notFound" : "nodePage.loadError")}{valid && !isNotFound(detail.error) && <> <button className={ACTION_BUTTON_CLASS} onClick={() => void detail.refetch()}>{t("atlas.retry")}</button></>}</p> : detail.isPending ? <p role="status">{t("common.loading")}</p> : node && <>
+        {detail.isError && <p role="status" className="text-sm text-warn">{t("atlas.refreshFailed")}</p>}
         <div className={`${box} flex flex-wrap items-start justify-between gap-3`}>
           <div className="min-w-0"><h1 className="break-words text-xl font-semibold text-text-bright">{node.name || node.publicKey.slice(0, 12)}</h1><p className="mt-1 text-xs text-text-muted">{t(`nodeTypes.${node.nodeTypeName}`, { defaultValue: node.nodeTypeName })} · <Timestamp value={node.lastSeen} /></p><code className="mt-2 block break-all text-[10px] text-text-muted">{node.publicKey}</code></div>
           <div className="flex flex-wrap gap-2"><button className={ACTION_BUTTON_CLASS} onClick={() => onViewNode(node.id)}>{t("nodePage.inspect")}</button>{node.observerId && <button className={ACTION_BUTTON_CLASS} onClick={() => onViewObserver(node.observerId!)}>{t("nodePage.observer")}</button>}</div>

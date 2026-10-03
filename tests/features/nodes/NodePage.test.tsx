@@ -6,7 +6,7 @@ import { NodePage } from "../../../src/features/nodes/NodePage";
 import { getNode, getNodeObservations, getNodeNeighbors } from "../../../src/api/client";
 import type { Node } from "../../../src/features/nodes/types";
 
-vi.mock("../../../src/api/client", () => ({ getNode: vi.fn(), getNodeObservations: vi.fn(), getNodeNeighbors: vi.fn(), getObserver: vi.fn(), getObserverTelemetry: vi.fn() }));
+vi.mock("../../../src/api/client", async () => ({ ...await vi.importActual("../../../src/api/client"), getNode: vi.fn(), getNodeObservations: vi.fn(), getNodeNeighbors: vi.fn(), getObserver: vi.fn(), getObserverTelemetry: vi.fn(), getCollectedNodeTelemetry: vi.fn(async () => ({ items: [], limit: 500 })) }));
 const id = "11111111-1111-4111-8111-111111111111";
 const now = Date.now();
 const node = { id, publicKey: "ab".repeat(32), name: "Roof repeater", nodeTypeName: "repeater", iatas: [], knownNeighborCount: 1, firstSeen: now - 100_000, lastSeen: now, observerId: undefined } as Node;
@@ -17,6 +17,16 @@ function mount(nodeId = id) {
   return actions;
 }
 describe("full node page", () => {
+  it("distinguishes a server failure from a missing node and supports retry", async () => {
+    vi.mocked(getNode).mockRejectedValueOnce(Object.assign(new Error("unavailable"), { status: 503 })).mockResolvedValue(node);
+    vi.mocked(getNodeNeighbors).mockResolvedValue([]);
+    vi.mocked(getNodeObservations).mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
+    mount();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Node details could not be loaded.");
+    expect(screen.queryByText("Node not found")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await screen.findByRole("heading", { name: "Roof repeater" });
+  });
   it("loads one bounded report sample and preserves inspection and back context", async () => {
     vi.mocked(getNode).mockResolvedValue(node);
     vi.mocked(getNodeNeighbors).mockResolvedValue([]);
