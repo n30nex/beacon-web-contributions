@@ -2,7 +2,6 @@ import { isQuestionable } from "./trace-quality";
 import { useTranslation } from "react-i18next";
 import type { TraceQuality } from "../../types/api";
 
-
 export function TraceQualityNotice({ quality, compact = false }: { quality?: TraceQuality; compact?: boolean }) {
   const { t } = useTranslation();
   if (!isQuestionable(quality)) return null;
