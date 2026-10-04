@@ -1,9 +1,10 @@
+import { CHAT_MS, type LiveChatter } from "./chatter";
 import { nodeTypeColor, type ChartColors } from "../stats/chartTheme";
 import { DEFAULT_CAMERA, FLOW_MS, project, fitCamera, panCamera, pathControls, visibleLinks, flowColor, linkContext, type Camera, type PathDisplay, type LiveTraffic, type Point3, type Topology } from "./topology";
 
 export type CameraView = { camera: Camera; region: string; extent: number };
 
-export function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: LiveTraffic, colors: ChartColors, select: (id: string) => void, focus: (code: string) => void, view?: CameraView) {
+export function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traffic: LiveTraffic, colors: ChartColors, select: (id: string) => void, focus: (code: string) => void, view?: CameraView, chatter?: LiveChatter) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   let camera = { ...(view?.camera ?? DEFAULT_CAMERA), target: { ...(view?.camera.target ?? DEFAULT_CAMERA.target) } };
@@ -49,9 +50,10 @@ export function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traff
   function draw(now: number) {
     frame = 0;
     if (!running || document.hidden) return;
+    const bubbles = chatter?.visible(Date.now()) ?? [];
     const flows = motion ? traffic.flows.filter(r => Date.now() - r.at < FLOW_MS) : [];
     // A fixed 30 fps ceiling and capped pixel ratio bound work on phones and large meshes.
-    if (!dirty && (flows.length || transition) && now - previousFrame < 32) { frame = requestAnimationFrame(draw); return; }
+    if (!dirty && (flows.length || bubbles.length || transition) && now - previousFrame < 32) { frame = requestAnimationFrame(draw); return; }
     previousFrame = now;
     dirty = false;
     if (transition) {
@@ -186,7 +188,35 @@ export function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traff
       ctx!.fillStyle = colors.bgSurface; ctx!.fillRect(selectedPoint.x - w / 2, selectedPoint.y - 34, w, 22);
       ctx!.fillStyle = colors.textBright; ctx!.fillText(label, selectedPoint.x, selectedPoint.y - 19);
     }
-    if (flows.length || transition) frame = requestAnimationFrame(draw);
+    const placed: {x:number;y:number;w:number;h:number}[] = [];
+    for (const bubble of bubbles) {
+      if (placed.length >= (width < 600 ? 1 : 2)) break;
+      const node = graph.byId.get(bubble.nodeId);
+      if (!node || (regionCode && node.region !== regionCode)) continue;
+      const q=p(node);
+      if (!q.visible || q.x < 8 || q.x > width-8 || q.y < 8 || q.y > height-8) continue;
+      const w=Math.min(240,width-24), h=76;
+      const positions=[{x:q.x-w/2,y:q.y-h-25},{x:q.x+20,y:q.y-h-15},{x:q.x-w-20,y:q.y-h-15}];
+      const box=positions.map(pos=>({x:Math.max(8,Math.min(width-w-8,pos.x)),y:Math.max(8,Math.min(height-h-8,pos.y)),w,h})).find(pos=>!placed.some(old=>pos.x<old.x+old.w+8 && pos.x+pos.w+8>old.x && pos.y<old.y+old.h+8 && pos.y+pos.h+8>old.y));
+      if (!box) continue; placed.push(box);
+      const alpha=motion ? Math.min(1,Math.max(0,(CHAT_MS-(Date.now()-bubble.at))/1600)) : 1;
+      ctx!.globalAlpha=alpha;
+      ctx!.strokeStyle=colors.secondary;ctx!.lineWidth=1;
+      const sx=Math.max(box.x+8,Math.min(box.x+w-8,q.x)),sy=box.y+h;
+      ctx!.beginPath();ctx!.moveTo(sx,sy);ctx!.lineTo(q.x,q.y);ctx!.stroke();
+      const angle=Math.atan2(q.y-sy,q.x-sx);
+      ctx!.beginPath();ctx!.moveTo(q.x,q.y);ctx!.lineTo(q.x-7*Math.cos(angle-.45),q.y-7*Math.sin(angle-.45));ctx!.lineTo(q.x-7*Math.cos(angle+.45),q.y-7*Math.sin(angle+.45));ctx!.closePath();ctx!.fillStyle=colors.secondary;ctx!.fill();
+      ctx!.fillStyle=colors.bgSurface;ctx!.fillRect(box.x,box.y,w,h);ctx!.strokeRect(box.x,box.y,w,h);
+      ctx!.textAlign="left";ctx!.font="600 12px Inter, sans-serif";ctx!.fillStyle=colors.secondary;
+      ctx!.fillText(bubble.sender,box.x+9,box.y+18,w-18);
+      ctx!.font="12px Inter, sans-serif";ctx!.fillStyle=colors.textBright;
+      const chars=Array.from(bubble.content);const lines:string[]=[];let line="";
+      for (const char of chars) { if(ctx!.measureText(line+char).width>w-20) {lines.push(line);line="";} line+=char; }
+      if(line)lines.push(line);
+      for(let i=0;i<Math.min(2,lines.length);i++)ctx!.fillText(lines[i]!.slice(0,i===1 && lines.length>2 ? -2 : undefined)+(i===1 && lines.length>2 ? "…" : ""),box.x+9,box.y+39+i*17,w-18);
+    }
+    ctx!.globalAlpha=1;
+    if (flows.length || transition || (bubbles.length && motion)) frame = requestAnimationFrame(draw);
   }
 
   function resize() {

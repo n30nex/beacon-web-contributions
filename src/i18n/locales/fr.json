@@ -900,6 +900,7 @@
       "scope": "Portée"
     },
     "charts": {
+      "gapLegend": "Les tirets relient les données manquantes par une estimation. Les points sont des mesures.",
       "uniquePackets": "Paquets uniques",
       "busy": "Occupation"
     },
@@ -966,6 +967,7 @@
       "perDay": "{{value}}/j"
     },
     "atlas": {
+      "neighborSource": "Voisins déduits des paquets reçus ; pas une table interrogée sur le répéteur.",
       "subtitle": "Vos nœuds en un coup d’œil.",
       "range": "Période d’activité",
       "ranges": {
@@ -1038,6 +1040,8 @@
       "remove": "Retirer la fiche"
     },
     "topology": {
+      "publicChatter": "Messages Public",
+      "chatterHint": "Les messages Public en direct pointent vers le premier récepteur cartographié signalé dans cette vue. Les noms des expéditeurs ne sont pas des identités vérifiées.",
       "title": "Topologie",
       "eyebrow": "TOPOLOGIE EN DIRECT / 3D",
       "canvas": "Topologie 3D vue du dessus. Glisser avec le bouton gauche déplace la vue ; le bouton droit ou Maj-gauche la fait tourner. La molette zoome. Les flèches déplacent, Maj-flèches tournent, plus et moins zooment, Début cadre la vue et Échap revient au mesh. Utilisez Chercher pour la sélection au clavier.",
@@ -1158,6 +1162,7 @@
       "neighbors": "Voisins · {{count}}"
     },
     "nodeTelemetry": {
+      "more": "Autres mesures ({{count}})",
       "loadError": "Impossible de charger la télémétrie du répéteur.",
       "collected": "Télémétrie du répéteur · 30 derniers jours",
       "collector": "Collecteur {{key}}",

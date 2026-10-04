@@ -8,7 +8,7 @@ import type { Node } from "../../../src/features/nodes/types";
 import type { PacketDetail } from "../../../src/types/api";
 import i18n from "../../../src/i18n";
 
-vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn(), getNode: vi.fn(), getNodeObservations: vi.fn(), getPacketDetail: vi.fn(), getCollectedNodeTelemetry: vi.fn() }));
+vi.mock("../../../src/api/client", () => ({ getNodeNeighbors: vi.fn(), getNodesPage: vi.fn(), getNode: vi.fn(), getNodeObservations: vi.fn(), getPacketDetail: vi.fn(), getCollectedNodeTelemetry: vi.fn() }));
 const pin = { id: "11111111-1111-4111-8111-111111111111", publicKey: "ab".repeat(32), name: "Old name" };
 const second = { ...pin, id: "22222222-2222-4222-8222-222222222222", publicKey: "cd".repeat(32), name: "Second" };
 const node = { ...pin, name: "Renamed repeater", nodeType: 2, nodeTypeName: "REPEATER", knownNeighborCount: 4, stale: false, lastSeen: Date.now(), iatas: [], lat: null, lng: null } as Node;
@@ -183,4 +183,15 @@ describe("identity recovery", () => {
     await expect(loadAtlasNode(pin)).rejects.toThrow("network");
     expect(api.getNodesPage).not.toHaveBeenCalled();
   });
+});
+
+it("loads neighbour evidence only when a compact card is expanded", async () => {
+ save();vi.mocked(api.getNodeNeighbors).mockResolvedValue([{id:second.id,name:"Nearby relay",publicKey:second.publicKey,nodeType:2,nodeTypeName:"repeater",iata:"YKF",observationCount:4,firstSeen:1,lastSeen:2}]);
+ mount();await screen.findByRole("button",{name:node.name!});
+ expect(api.getNodeNeighbors).not.toHaveBeenCalled();
+ const summary=screen.getAllByText(/Known neighbours/).map(el=>el.closest("summary")).find(Boolean)!;
+ const details=summary.closest("details")!;details.open=true;fireEvent(details,new Event("toggle"));
+ await screen.findByRole("button",{name:/Nearby relay/});
+ expect(api.getNodeNeighbors).toHaveBeenCalledWith(node.id);
+ expect(screen.getByText(/not a polled repeater table/)).toBeInTheDocument();
 });

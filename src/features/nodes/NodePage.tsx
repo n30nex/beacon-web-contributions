@@ -1,3 +1,4 @@
+import { NodeTypeBadge } from "../../components/NodeTypeBadge";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -40,7 +41,7 @@ export function NodePage({ nodeId, onViewNode, onViewObserver, onAnalyzePacket }
       {!valid || (detail.isError && !node) ? <p role="alert">{t(!valid || isNotFound(detail.error) ? "nodeDetail.notFound" : "nodePage.loadError")}{valid && !isNotFound(detail.error) && <> <button className={ACTION_BUTTON_CLASS} onClick={() => void detail.refetch()}>{t("atlas.retry")}</button></>}</p> : detail.isPending ? <p role="status">{t("common.loading")}</p> : node && <>
         {detail.isError && <p role="status" className="text-sm text-warn">{t("atlas.refreshFailed")}</p>}
         <div className={`${box} flex flex-wrap items-start justify-between gap-3`}>
-          <div className="min-w-0"><h1 className="break-words text-xl font-semibold text-text-bright">{node.name || node.publicKey.slice(0, 12)}</h1><p className="mt-1 text-xs text-text-muted">{t(`nodeTypes.${node.nodeTypeName}`, { defaultValue: node.nodeTypeName })} · <Timestamp value={node.lastSeen} /></p><code className="mt-2 block break-all text-[10px] text-text-muted">{node.publicKey}</code></div>
+          <div className="min-w-0"><h1 className="break-words text-xl font-semibold text-text-bright">{node.name || node.publicKey.slice(0, 12)}</h1><p className="mt-1 text-xs text-text-muted"><NodeTypeBadge typeName={node.nodeTypeName} observer={node.isObserver} /> · <Timestamp value={node.lastSeen} /></p><code className="mt-2 block break-all text-[10px] text-text-muted">{node.publicKey}</code></div>
           <div className="flex flex-wrap gap-2"><button className={ACTION_BUTTON_CLASS} onClick={() => onViewNode(node.id)}>{t("nodePage.inspect")}</button>{node.observerId && <button className={ACTION_BUTTON_CLASS} onClick={() => onViewObserver(node.observerId!)}>{t("nodePage.observer")}</button>}</div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted"><span>{t("atlas.sample", { limit: REPORT_LIMIT })}</span><select className="min-h-11 rounded border border-border bg-bg-surface px-3" aria-label={t("atlas.range")} value={range} onChange={e => setParams(previous => { const next = new URLSearchParams(previous); next.set("nodeRange", e.target.value); return next; })}><option value="24h">{t("atlas.ranges.24h")}</option><option value="3d">{t("atlas.ranges.3d")}</option></select></div>

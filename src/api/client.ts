@@ -450,3 +450,7 @@ export interface ScopeCatalogue {
 export function getScopeCatalogues(): Promise<ScopeCatalogue[]> {
   return request("/scope-catalogues");
 }
+
+export function getTopologyLinks(iatas: string[] | undefined, window: string, signal?: AbortSignal): Promise<{ links: [string,string][]; capped: boolean; since: number; until: number }> {
+  return request("/routes/topology", { iatas: iatas?.join(","), window }, signal);
+}

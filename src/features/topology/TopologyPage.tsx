@@ -1,3 +1,4 @@
+import { LiveChatter } from "./chatter";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -13,7 +14,7 @@ import { TopologyCanvas } from "./TopologyCanvas";
 import { BottomSheet } from "../../components/BottomSheet";
 
 type Props = { wsManager: WsManager; active?: boolean; onViewNode: (id: string) => void; onViewObserver: (id: string) => void; onAnalyzePacket: (hash: string) => void };
-const button = "min-h-11 rounded-lg border border-border bg-bg-surface px-3 text-xs text-text-bright hover:border-primary disabled:opacity-40";
+const button = "min-h-11 rounded-sm border border-border bg-bg-surface px-3 text-xs text-text-bright hover:border-primary disabled:opacity-40";
 
 export function TopologyPage(props: Props) {
   const { iatas, regionKey, isResolved } = useRegion();
@@ -25,6 +26,8 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   const colors = useChartColors();
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [animate, setAnimate] = useState(true);
+  const [showChatter,setShowChatter] = useState(true);
+  const [chatter] = useState(()=>new LiveChatter());
   const focus = iatas?.length === 1 ? iatas[0]! : "";
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
@@ -39,7 +42,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   const requestedWindow = params.get("topoWindow") || "15m";
   const routeWindow = Object.hasOwn(ROUTE_WINDOWS, requestedWindow) ? requestedWindow as keyof typeof ROUTE_WINDOWS : "15m";
   const data = useQuery({ queryKey: ["topology", iatas ?? "*"], queryFn: ({ signal }) => loadTopology(iatas, signal), enabled: active && resolved, staleTime: 120_000, refetchOnWindowFocus: false });
-  const routes = useQuery({ queryKey: ["topology-routes", iatas ?? "*", routeWindow], queryFn: ({ signal }) => loadTopologyRoutes(iatas, signal, Date.now(), ROUTE_WINDOWS[routeWindow]), enabled: active && resolved, staleTime: 0, refetchOnWindowFocus: false, placeholderData: keepPreviousData });
+  const routes = useQuery({ queryKey: ["topology-routes", iatas ?? "*", routeWindow], queryFn: ({ signal }) => loadTopologyRoutes(iatas, signal, ROUTE_WINDOWS[routeWindow]), enabled: active && resolved, staleTime: 60_000, retry: false, refetchOnWindowFocus: false, placeholderData: keepPreviousData });
   const catalogues = useQuery({ queryKey: ["scope-catalogues"], queryFn: getScopeCatalogues, enabled: showInspector && resolved, staleTime: 300_000, refetchInterval: 300_000, refetchIntervalInBackground: false, refetchOnWindowFocus: false, retry: false });
   const graph = useMemo(() => buildTopology(data.data?.nodes ?? [], iatas, routes.data?.routes ?? []), [data.data, iatas, routes.data]);
   const requestedCameraRegion = params.get("topoFocus") || focus;
@@ -55,15 +58,21 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   const status = useSyncExternalStore(subscribe, () => wsManager.getStatus());
   const receive = useEffectEvent((event: Parameters<typeof reportFromEvent>[0]) => {
     if (document.hidden || (iatas && !iatas.includes(event?.observation?.iata))) return;
+    if (showChatter) chatter.observe(event,graph,Date.now());
     const report = reportFromEvent(event, graph, Date.now());
     if (report) traffic.add(report);
   });
 
+  const receiveChat = useEffectEvent((event: Parameters<LiveChatter["message"]>[0]) => {
+    if (!document.hidden && showChatter) chatter.message(event,Date.now());
+  });
+  useEffect(() => { if (!showChatter) chatter.clear(); },[showChatter,chatter]);
   useEffect(() => {
     if (!active || !resolved || !data.data) return;
     const packet = wsManager.onPacketObservation(event => receive(event));
-    const lagged = wsManager.onLagged(() => traffic.markGap());
-    const visibility = () => { wsManager.setResolvePath(!document.hidden); if (document.hidden) { traffic.markGap(); traffic.clearFlows(); } };
+    const messages = wsManager.onChannelMessage(event=>receiveChat(event));
+    const lagged = wsManager.onLagged(() => {traffic.markGap();chatter.clear();});
+    const visibility = () => { wsManager.setResolvePath(!document.hidden); if (document.hidden) { traffic.markGap(); traffic.clearFlows(); chatter.clear(); } };
     visibility();
     document.addEventListener("visibilitychange", visibility);
     const timer = window.setInterval(() => {
@@ -71,8 +80,8 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
       const now = Date.now(); traffic.prune(now);
       setLive(previous => ({ reports: [...traffic.reports], tick: previous.tick + 1, now, gap: traffic.gapUntil > now, capped: traffic.cappedUntil > now }));
     }, 500);
-    return () => { packet(); lagged(); clearInterval(timer); document.removeEventListener("visibilitychange", visibility); wsManager.setResolvePath(false); traffic.clearFlows(); traffic.markGap(); };
-  }, [active, resolved, data.data, iatas, traffic, wsManager]);
+    return () => { packet(); messages(); lagged(); chatter.clear(); clearInterval(timer); document.removeEventListener("visibilitychange", visibility); wsManager.setResolvePath(false); traffic.clearFlows(); traffic.markGap(); };
+  }, [active, resolved, data.data, iatas, traffic, wsManager, chatter]);
 
   const counts = useMemo(() => {
     const observers = new Map<string, { name: string; count: number; iata: string }>();
@@ -98,7 +107,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   };
   useEffect(() => { if (searchOpen && active) searchInput.current?.focus(); }, [searchOpen, active]);
   const inspector = <div className="space-y-3 overflow-y-auto p-2">
-          <div className="rounded-xl border border-border bg-bg-surface p-3">
+          <div className="rounded-sm border border-border bg-bg-surface p-3">
             <div className="mb-3 flex items-center justify-between gap-2"><h2 className="text-sm font-semibold text-text-bright">{t("topology.inspector")}</h2><button className={button} onClick={closeInspector}>{t("topology.close")}</button></div>
             <input ref={searchInput} className="min-h-11 w-full rounded border border-border bg-bg-base px-3 text-sm text-text-bright" aria-label={t("topology.search")} placeholder={t("topology.search")} value={search} onChange={e => setSearch(e.target.value)} />
             <div className="mt-2 max-h-44 overflow-y-auto">{matches.map(n => <button key={n.id} className={`flex min-h-9 w-full items-center justify-between gap-2 rounded px-2 text-left text-xs ${selected === n.id ? "bg-primary/15 text-primary" : "text-text-normal hover:bg-bg-raised"}`} onClick={() => select(n.id)} aria-pressed={selected === n.id}><span className="truncate">{n.name || n.publicKey.slice(0, 10)}</span><span className="shrink-0 font-mono text-[10px]">{n.region}</span></button>)}{search.trim() && !matches.length && <p className="py-3 text-xs text-text-muted">{t("topology.noNodes")}</p>}</div>
@@ -108,7 +117,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
               <div className="max-h-40 overflow-y-auto">{neighbours.map(neighbour => { const context = linkContext(node, neighbour); const listed = context.sharedDefault && catalogues.data?.some(c => (c.iata === node.region || c.iata === neighbour.region) && c.scopes.some(scope => scope.name === context.sharedDefault)); return <button key={neighbour.id} className="flex min-h-10 w-full items-center justify-between gap-2 border-t border-border-subtle text-left text-xs text-text-normal" onClick={() => select(neighbour.id)}><span className="truncate">{neighbour.name || neighbour.publicKey.slice(0, 8)}</span><span className={`shrink-0 font-mono text-[10px] ${context.sharedDefault ? "text-green" : "text-primary"}`} title={listed ? t("topology.cataloguedLink") : undefined}>{context.sharedDefault || `${node.region} ↔ ${neighbour.region}`}{listed ? " · MM" : ""}</span></button>; })}</div>
             </div>}
           </div>
-          {(focus || node) && <div className="rounded-xl border border-border bg-bg-surface p-3"><h2 className="text-sm font-semibold text-text-bright">MeshMapper · {node?.region || focus}</h2>
+          {(focus || node) && <div className="rounded-sm border border-border bg-bg-surface p-3"><h2 className="text-sm font-semibold text-text-bright">MeshMapper · {node?.region || focus}</h2>
             {catalogue ? <><p className={`my-2 text-xs ${catalogueStale ? "text-warn" : "text-text-normal"}`}>{t(catalogueStale ? "topology.catalogueStale" : "topology.catalogueFresh")}</p>{catalogue.generatedAt > 0 && <p className="text-[11px] text-text-normal">{t("topology.catalogueCounts", { count: catalogue.scoped, total: catalogue.repeaters })}</p>}<div className="mt-2 max-h-32 overflow-y-auto">{catalogue.scopes.map(scope => <div key={scope.name} className="flex justify-between gap-2 py-1 text-xs"><span className={scope.name === node?.defaultScope ? "text-green" : "text-text-normal"}>{scope.name}{scope.monitored ? " ◉" : ""}</span><span className="font-mono text-text-muted">{scope.repeaters}</span></div>)}</div><p className="mt-2 text-[10px] text-text-muted">{t("topology.catalogueChecked")}: {catalogue.checkedAt ? new Date(catalogue.checkedAt).toLocaleString() : "—"}</p></> : <p className="mt-2 text-xs text-text-muted">{t(catalogues.isLoading ? "topology.loading" : catalogues.isError ? "topology.catalogueError" : "topology.noCatalogue")}</p>}
             <p className="mt-2 text-[10px] text-text-muted">{t("topology.catalogueMeaning")}</p>
           </div>}
@@ -122,6 +131,8 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
     <button className={compactButton} aria-expanded={showInspector} onClick={showInspector ? closeInspector : openInspector}>{t(showInspector ? "topology.hideInspector" : "topology.find")}</button>
   </>;
   const settings = <>
+    <label className="flex min-h-9 items-center gap-2 text-xs text-text-normal"><input type="checkbox" checked={showChatter} onChange={e=>setShowChatter(e.target.checked)} />{t("topology.publicChatter")}</label>
+    <p className="text-[10px] text-text-muted">{t("topology.chatterHint")}</p>
     <label className="flex min-h-11 items-center gap-2 text-xs text-text-normal"><input type="checkbox" checked={animate && !reducedMotion} disabled={reducedMotion} onChange={e => setAnimate(e.target.checked)} />{t(reducedMotion ? "topology.reducedMotion" : "topology.motion")}</label>
     <div className="flex flex-wrap gap-3 border-t border-border pt-3 text-[11px] text-text-normal">
       {NODE_TYPES.map(type => <span key={type.name} className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: nodeTypeColor(type.name, colors) }} />{t(`topology.types.${type.name}`)}</span>)}
@@ -134,7 +145,7 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
   </>;
   const heading = <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <div className="flex items-center gap-2"><h1 className="text-base font-semibold text-text-bright">{t("topology.title")}</h1>
-          <span className={`flex items-center gap-1.5 text-xs ${status !== "connected" ? "text-warn" : "text-green"}`} role="status"><span className="h-2 w-2 rounded-full bg-current" />{t(status === "connected" ? "topology.live" : "topology.reconnecting")}</span>
+          <span className={`flex items-center gap-1.5 text-xs ${status !== "connected" ? "text-warn" : "text-green"}`} role="status"><span className="h-2 w-2 rounded-full bg-current beacon-live-dot" />{t(status === "connected" ? "topology.live" : "topology.reconnecting")}</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-normal">
           <span><b className="font-mono text-text-bright">{data.data ? graph.nodes.length.toLocaleString() : "—"}</b> {t("topology.nodes")}</span>
@@ -150,12 +161,12 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
       {routes.isError && <p role="alert" className="text-xs text-warn">{t("topology.routesError")} <button className={button} onClick={() => routes.refetch()}>{t("topology.refresh")}</button></p>}
       {(data.data?.capped || routes.data?.capped || graph.linksCapped || live.capped) && <p className="text-xs text-warn">{t("topology.bounded")}</p>}
       <div className={`grid min-h-0 flex-1 min-w-0 items-stretch gap-3 ${showInspector && !mobile ? "md:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
-        <TopologyCanvas graph={graph} traffic={traffic} colors={colors} selected={selected} onSelect={select} region={cameraRegion} onRegion={focusCamera} heading={heading} controls={controls} settings={settings}
+        <TopologyCanvas graph={graph} traffic={traffic} chatter={chatter} colors={colors} selected={selected} onSelect={select} region={cameraRegion} onRegion={focusCamera} heading={heading} controls={controls} settings={settings}
           motion={animate && !reducedMotion} active={active} tick={live.tick} />
-        {showInspector && !mobile && <aside aria-label={t("topology.inspector")} className="min-h-0 min-w-0 overflow-y-auto rounded-xl border border-border bg-bg-surface">{inspector}</aside>}
+        {showInspector && !mobile && <aside aria-label={t("topology.inspector")} className="min-h-0 min-w-0 overflow-y-auto rounded-sm border border-border bg-bg-surface">{inspector}</aside>}
       </div>
       {showInspector && mobile && <BottomSheet onClose={closeInspector} label={t("topology.inspector")}>{inspector}</BottomSheet>}
-      <details className="max-h-[35%] shrink-0 overflow-y-auto rounded-lg border border-border bg-bg-surface" onToggle={e => setActivityOpen(e.currentTarget.open)}>
+      <details className="max-h-[35%] shrink-0 overflow-y-auto rounded-sm border border-border bg-bg-surface" onToggle={e => setActivityOpen(e.currentTarget.open)}>
         <summary className={`${activityOpen ? "min-h-9 text-xs" : "min-h-7 text-[11px]"} cursor-pointer content-center px-2 text-text-normal`}>
           <span className="font-semibold text-text-bright">{t("topology.activity")}</span>
           <span className="ml-2">{t("topology.activityCounts", { count: live.reports.length, observers: counts.observers.length })}</span>
@@ -163,15 +174,15 @@ function TopologySession({ wsManager, active = true, onViewNode, onViewObserver,
         </summary>
         {activityOpen && <div className="space-y-3 p-3 pt-0">
           {live.gap && <p className="text-xs text-warn">{t("topology.gap")}</p>}
-          <div className="rounded-lg border border-border bg-bg-surface p-3">
+          <div className="rounded-sm border border-border bg-bg-surface p-3">
             <div className="flex justify-between text-xs text-text-normal"><span>{t("topology.mix")}</span><span>{t("topology.paths", { count: counts.paths })}</span></div>
             <div className="my-3 flex h-2 overflow-hidden rounded bg-bg-raised">{Object.entries(counts.kinds).map(([kind, count]) => <div key={kind} style={{ width: `${100 * count / Math.max(1, live.reports.length)}%`, background: flowColor(kind as PacketKind, colors) }} />)}</div>
             <div className="flex flex-wrap gap-4 text-[11px] text-text-normal">{Object.entries(counts.kinds).map(([kind, count]) => <span key={kind}><span style={{ color: flowColor(kind as PacketKind, colors) }}>●</span> {t(`topology.kinds.${kind}`)} <b className="text-text-bright">{count}</b></span>)}</div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-border bg-bg-surface p-3"><h2 className="mb-2 text-sm font-semibold text-text-bright">{t("topology.reporting")}</h2><div className="max-h-48 space-y-2 overflow-y-auto">{counts.observers.slice(0, 20).map(([id, observer]) => <button key={id} className="relative flex min-h-10 w-full items-center justify-between gap-2 overflow-hidden rounded bg-bg-base px-2 text-left text-xs text-text-bright" onClick={() => onViewObserver(id)}><span className="absolute inset-y-0 left-0 bg-primary/15" style={{ width: `${100 * observer.count / (counts.observers[0]?.[1].count || 1)}%` }} /><span className="relative truncate">{observer.name}</span><span className="relative shrink-0 font-mono text-primary">{observer.count}</span></button>)}{!counts.observers.length && <p className="py-2 text-xs text-text-muted">{t("topology.listening")}</p>}</div></div>
-          <div className="rounded-xl border border-border bg-bg-surface p-3"><h2 className="mb-2 text-sm font-semibold text-text-bright">{t("topology.latest")}</h2><div className="max-h-64 divide-y divide-border-subtle overflow-y-auto">{live.reports.slice(-10).reverse().map(report => <button key={report.key} className="flex min-h-12 w-full items-center gap-2 py-2 text-left text-xs text-text-normal" onClick={() => onAnalyzePacket(report.hash)}><span style={{ color: flowColor(report.kind, colors) }}>●</span><span className="min-w-0 flex-1"><span className="block font-mono text-text-bright">{report.hash.slice(0, 8)} <span className="text-primary">{report.iata}</span> <span className="text-green">{report.scope}</span></span><span className="block truncate">{report.observerName}</span></span><span className="max-w-24 text-right text-[10px]">{t(report.segments.length ? report.partial ? "topology.partialPath" : "topology.path" : "topology.noPath")}</span></button>)}</div></div>
+          <div className="rounded-sm border border-border bg-bg-surface p-3"><h2 className="mb-2 text-sm font-semibold text-text-bright">{t("topology.reporting")}</h2><div className="max-h-48 space-y-2 overflow-y-auto">{counts.observers.slice(0, 20).map(([id, observer]) => <button key={id} className="relative flex min-h-10 w-full items-center justify-between gap-2 overflow-hidden rounded bg-bg-base px-2 text-left text-xs text-text-bright" onClick={() => onViewObserver(id)}><span className="absolute inset-y-0 left-0 bg-primary/15" style={{ width: `${100 * observer.count / (counts.observers[0]?.[1].count || 1)}%` }} /><span className="relative truncate">{observer.name}</span><span className="relative shrink-0 font-mono text-primary">{observer.count}</span></button>)}{!counts.observers.length && <p className="py-2 text-xs text-text-muted">{t("topology.listening")}</p>}</div></div>
+          <div className="rounded-sm border border-border bg-bg-surface p-3"><h2 className="mb-2 text-sm font-semibold text-text-bright">{t("topology.latest")}</h2><div className="max-h-64 divide-y divide-border-subtle overflow-y-auto">{live.reports.slice(-10).reverse().map(report => <button key={report.key} className="flex min-h-12 w-full items-center gap-2 py-2 text-left text-xs text-text-normal" onClick={() => onAnalyzePacket(report.hash)}><span style={{ color: flowColor(report.kind, colors) }}>●</span><span className="min-w-0 flex-1"><span className="block font-mono text-text-bright">{report.hash.slice(0, 8)} <span className="text-primary">{report.iata}</span> <span className="text-green">{report.scope}</span></span><span className="block truncate">{report.observerName}</span></span><span className="max-w-24 text-right text-[10px]">{t(report.segments.length ? report.partial ? "topology.partialPath" : "topology.path" : "topology.noPath")}</span></button>)}</div></div>
 
           </div>
         </div>}

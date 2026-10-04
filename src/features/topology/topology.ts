@@ -1,5 +1,5 @@
 import type { ChartColors } from "../stats/chartTheme";
-import { getKnownRoutesPage, getNodesPage, type RouteCursor } from "../../api/client";
+import { getTopologyLinks, getNodesPage } from "../../api/client";
 import type { NodeSummary } from "../nodes/types";
 import type { KnownRoute, ResolvedHop } from "../../types/api";
 import type { WsPacketObservation } from "../../types/ws";
@@ -37,25 +37,16 @@ export async function loadTopology(iatas: string[] | undefined, signal: AbortSig
   return { nodes: [...nodes.values()], capped: true };
 }
 
-export async function loadTopologyRoutes(iatas: string[] | undefined, signal: AbortSignal, now = Date.now(), window = ROUTE_WINDOWS["15m"] as number) {
+export async function loadTopologyRoutes(iatas: string[] | undefined, signal: AbortSignal, window = ROUTE_WINDOWS["15m"] as number) {
   signal.throwIfAborted();
   if (iatas?.length === 0) return { routes: [], capped: false };
-  const routes = new Map<number, KnownRoute>(), cursors = new Set<string>();
-  let cursor: RouteCursor | undefined;
-  for (let page = 0; page < ROUTE_CAP / 200; page++) {
-    signal.throwIfAborted();
-    const result = await getKnownRoutesPage({ iata: iatas?.length === 1 ? iatas[0] : undefined, cursor, limit: 200 }, signal);
-    for (const route of result.items) if (route.lastSeen >= now - window && (!iatas || iatas.includes(route.iata))) routes.set(route.id, route);
-    if (!result.hasMore || result.items.some(r => r.lastSeen < now - window)) return { routes: [...routes.values()], capped: false };
-    if (result.nextCursor == null) break;
-    const key = `${result.nextCursor.lastSeen}:${result.nextCursor.id}`;
-    if (cursors.has(key)) break;
-    cursor = result.nextCursor; cursors.add(key);
-  }
-  return { routes: [...routes.values()], capped: true };
+  const key = Object.entries(ROUTE_WINDOWS).find(([,value])=>value===window)?.[0];
+  if (!key) throw new Error("Unsupported topology window");
+  const result = await getTopologyLinks(iatas,key,signal);
+  return {routes:result.links,capped:result.capped};
 }
 
-export function buildTopology(input: NodeSummary[], selectedIatas: string | readonly string[] = "", routes: KnownRoute[] = []): Topology {
+export function buildTopology(input: NodeSummary[], selectedIatas: string | readonly string[] = "", routes: (KnownRoute | [string,string])[] = []): Topology {
   const allowed = typeof selectedIatas === "string" ? (selectedIatas ? [selectedIatas] : undefined) : selectedIatas;
   const groups = new Map<string, NodeSummary[]>();
   const unique = [...new Map(input.slice(0, NODE_CAP).map(n => [n.id, n])).values()];
@@ -99,8 +90,8 @@ export function buildTopology(input: NodeSummary[], selectedIatas: string | read
     seen.add(key);
     links.push(pair);
   }
-  for (const route of routes) for (let i = 1; i < route.hops.length; i++) {
-    const a = route.hops[i - 1]!.nodeId, b = route.hops[i]!.nodeId;
+  const routePairs: [string,string][] = routes.flatMap(route => Array.isArray(route) ? [route] : route.hops.slice(1).map((hop,i) => [route.hops[i]!.nodeId,hop.nodeId] as [string,string]));
+  for (const [a,b] of routePairs) {
     // Never remove a missing hop and connect the identities on either side.
     if (a === b || !byId.has(a) || !byId.has(b)) continue;
     const pair = [a, b].sort() as [string, string], key = pair.join("|");

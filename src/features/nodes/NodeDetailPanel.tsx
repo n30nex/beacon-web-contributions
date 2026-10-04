@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { getNode, getNodeObservations, getNodeNeighbors } from "../../api/client";
+import { NodeTypeBadge } from "../../components/NodeTypeBadge";
 import { Badge } from "../../components/Badge";
 import { DetailPanel, Section, Field } from "../../components/DetailPanel";
 import { CopyButton } from "../../components/CopyButton";
@@ -23,7 +24,7 @@ function NodeNeighborRow({ neighbor, onClick }: { neighbor: NodeNeighbor; onClic
         <span className={`font-mono font-semibold tracking-wider truncate ${neighbor.name ? "text-primary" : "text-text-dim italic"}`}>
           {neighbor.name ?? formatHex(neighbor.id)}
         </span>
-        <Badge variant="default">{neighbor.nodeTypeName}</Badge>
+        <NodeTypeBadge typeName={neighbor.nodeTypeName} />
         <IataChip>{neighbor.iata}</IataChip>
         <Timestamp value={neighbor.lastSeen} className="text-text-dim ml-auto font-mono text-[11px]" />
       </div>
@@ -127,7 +128,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                 <span className={`font-mono text-xs font-semibold tracking-wider ${node.name ? "text-primary" : "text-text-dim italic"}`}>
                   {node.name ?? formatHex(node.id)}
                 </span>
-                <Badge variant="default">{node.nodeTypeName}</Badge>
+                <NodeTypeBadge typeName={node.nodeTypeName} observer={node.isObserver} />
                 <ForeignNodeBadge possiblyForeign={node.possiblyForeign} />
               </div>
               <div className="flex items-center gap-2">

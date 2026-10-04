@@ -40,12 +40,12 @@ function LiveBadge({ wsManager, compact = false }: { wsManager: WsManager; compa
   if (status === "connected") {
     if (compact) return (
       <span role="status" aria-label={t("connection.live")} title={t("connection.live")} className="flex h-6 w-6 items-center justify-center">
-        <span className="h-2 w-2 rounded-full bg-green animate-pulse" />
+        <span className="h-2 w-2 rounded-full bg-green animate-pulse beacon-live-dot" />
       </span>
     );
     return (
       <div className="flex items-center gap-1.5 font-mono text-[11px] text-green bg-green/8 border border-green/15 px-2 py-0.5 rounded-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
+        <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse beacon-live-dot" />
         {t("connection.live")}
       </div>
     );

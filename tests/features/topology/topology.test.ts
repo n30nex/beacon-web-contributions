@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { buildTopology, reportFromEvent, LiveTraffic, project, fitCamera, panCamera, pathControls, visibleLinks, DEFAULT_CAMERA, linkContext, loadTopology, loadTopologyRoutes, NODE_CAP, FLOW_CAP, REPORT_CAP } from "../../../src/features/topology/topology";
-import { getKnownRoutesPage, getNodesPage } from "../../../src/api/client";
+import { getTopologyLinks, getNodesPage } from "../../../src/api/client";
 import type { NodeSummary } from "../../../src/features/nodes/types";
 import type { WsPacketObservation } from "../../../src/types/ws";
 import type { KnownRoute, ResolvedHop } from "../../../src/types/api";
 
-vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn(), getKnownRoutesPage: vi.fn() }));
+vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn(), getTopologyLinks: vi.fn() }));
 const node = (id: string, region = "YOW", scope = "#on"): NodeSummary => ({ id, publicKey: id.repeat(64), name: id, nodeType: 2, nodeTypeName: "repeater", lat: null, lng: null, iatas: [{ iata: region, lastHeard: 1 }], knownNeighborCount: 1, neighborIds: [], defaultScope: scope });
 const a = { ...node("a"), neighborIds: ["b", "b", "a", "missing"] }, b = { ...node("b", "YKF"), neighborIds: ["a"] }, c = node("c");
 const graph = buildTopology([a, b, c]);
@@ -114,29 +114,26 @@ describe("3D topology evidence and bounds", () => {
     const routes = [route(1, ["b", "c"], 100_000_000), route(2, ["a", "missing", "c"], 100_000_000)];
     const withRoutes = buildTopology([a, b, c], "", routes);
     expect(withRoutes.links).toEqual([["a", "b"], ["b", "c"]]); expect([...withRoutes.routeLinks]).toEqual(["b|c"]);
-    vi.mocked(getKnownRoutesPage).mockResolvedValue({ items: [...routes, route(3, ["a", "c"], 0)], hasMore: true, nextCursor: { lastSeen: 0, id: 3 } });
+    vi.mocked(getTopologyLinks).mockResolvedValue({ links:[["b","c"]],capped:false,since:0,until:1 });
     const controller = new AbortController();
-    expect(await loadTopologyRoutes(["YOW"], controller.signal, 100_000_001)).toEqual({ routes, capped: false });
-    expect(getKnownRoutesPage).toHaveBeenCalledTimes(1); expect(getKnownRoutesPage).toHaveBeenCalledWith({ iata: "YOW", cursor: undefined, limit: 200 }, controller.signal);
+    expect(await loadTopologyRoutes(["YOW"],controller.signal)).toEqual({routes:[["b","c"]],capped:false});
+    expect(getTopologyLinks).toHaveBeenCalledTimes(1);
+    expect(getTopologyLinks).toHaveBeenCalledWith(["YOW"],"15m",controller.signal);
     controller.abort(); await expect(loadTopologyRoutes(undefined, controller.signal)).rejects.toThrow();
   });
   it("isolates multi-region nodes into the requested region", () => {
     const multi = { ...a, iatas: [{ iata: "YOW", lastHeard: 1 }, { iata: "YKF", lastHeard: 100 }] };
     expect(buildTopology([multi], "YOW").nodes[0]!.region).toBe("YOW");
   });
-  it("loads routes sharing a timestamp by ID and stops a repeated composite cursor", async () => {
-    vi.mocked(getKnownRoutesPage).mockClear()
-      .mockResolvedValueOnce({ items: [], hasMore: true, nextCursor: { lastSeen: 1000, id: 10 } })
-      .mockResolvedValueOnce({ items: [], hasMore: true, nextCursor: { lastSeen: 1000, id: 9 } })
-      .mockResolvedValueOnce({ items: [], hasMore: true, nextCursor: { lastSeen: 1000, id: 9 } });
-    const signal = new AbortController().signal;
-    expect(await loadTopologyRoutes(undefined, signal, 1001)).toEqual({ routes: [], capped: true });
-    expect(getKnownRoutesPage).toHaveBeenCalledTimes(3);
-    expect(getKnownRoutesPage).toHaveBeenNthCalledWith(3, { iata: undefined, cursor: { lastSeen: 1000, id: 9 }, limit: 200 }, signal);
+  it("loads a complete 24h snapshot in one cancellable request and preserves its cap warning", async () => {
+    vi.mocked(getTopologyLinks).mockClear().mockResolvedValue({links:[["a","b"]],capped:true,since:0,until:1});
+    const signal=new AbortController().signal;
+    expect(await loadTopologyRoutes(undefined,signal,86_400_000)).toEqual({routes:[["a","b"]],capped:true});
+    expect(getTopologyLinks).toHaveBeenCalledExactlyOnceWith(undefined,"24h",signal);
   });
   it("does not scan global routes for an empty region", async () => {
-    vi.mocked(getKnownRoutesPage).mockClear();
+    vi.mocked(getTopologyLinks).mockClear();
     expect(await loadTopologyRoutes([], new AbortController().signal)).toEqual({ routes: [], capped: false });
-    expect(getKnownRoutesPage).not.toHaveBeenCalled();
+    expect(getTopologyLinks).not.toHaveBeenCalled();
   });
 });

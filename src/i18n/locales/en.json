@@ -866,6 +866,7 @@
       "scope": "Scope"
     },
     "charts": {
+      "gapLegend": "Dashed lines connect missing samples with an estimate. Dots are measured readings.",
       "uniquePackets": "Unique packets",
       "busy": "Busy"
     },
@@ -930,6 +931,7 @@
       "perDay": "{{value}}/d"
     },
     "atlas": {
+      "neighborSource": "Neighbours inferred from received packets; not a polled repeater table.",
       "subtitle": "Your nodes, at a glance.",
       "range": "Activity window",
       "ranges": {
@@ -1002,6 +1004,8 @@
       "remove": "Remove card"
     },
     "topology": {
+      "publicChatter": "Public chatter",
+      "chatterHint": "Live Public messages point to the earliest mapped receiver reported in this view. Sender names are message text, not verified identities.",
       "title": "Topology",
       "eyebrow": "LIVE TOPOLOGY / 3D",
       "canvas": "3D topology viewed from above. Left-drag pans; right-drag or Shift-left-drag rotates. Mouse wheel zooms. Arrow keys pan, Shift-arrows rotate, plus and minus zoom, Home fits the view and Escape returns to the mesh. Use Find for keyboard selection.",
@@ -1122,6 +1126,7 @@
       "neighbors": "Neighbours · {{count}}"
     },
     "nodeTelemetry": {
+      "more": "More telemetry ({{count}})",
       "loadError": "Repeater telemetry could not be loaded.",
       "collected": "Repeater telemetry · last 30 days",
       "collector": "Collector {{key}}",

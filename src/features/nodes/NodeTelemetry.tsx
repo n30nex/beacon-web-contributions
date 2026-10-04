@@ -7,11 +7,12 @@ import { formatUptime } from "../../lib/formatters";
 import type { Node } from "./types";
 import { CollectedNodeTelemetry } from "./CollectedNodeTelemetry";
 
-export function NodeTelemetry({ node, active = true }: { node: Node; active?: boolean }) {
+export function NodeTelemetry({ node, active = true, compact = false }: { node: Node; active?: boolean; compact?: boolean }) {
+  if (compact) return node.observerId ? <ObserverNodeTelemetry node={node} active={active} compact /> : <CollectedNodeTelemetry publicKey={node.publicKey} active={active} compact />;
   return <><CollectedNodeTelemetry publicKey={node.publicKey} active={active} /><ObserverNodeTelemetry node={node} active={active} /></>;
 }
 
-function ObserverNodeTelemetry({ node, active }: { node: Node; active: boolean }) {
+function ObserverNodeTelemetry({ node, active, compact = false }: { node: Node; active: boolean; compact?: boolean }) {
   const { t } = useTranslation();
   const observer = useObserver(active ? node.observerId ?? null : null);
   const exact = observer.data?.publicKey?.toLowerCase() === node.publicKey.toLowerCase();
@@ -24,17 +25,19 @@ function ObserverNodeTelemetry({ node, active }: { node: Node; active: boolean }
     { label: t("observerPage.noise"), values: points.map(p => p.noiseFloorDb), format: (n: number) => `${n.toFixed(0)} dBm` },
   ].filter(metric => metric.values.some(v => v != null && Number.isFinite(v)));
   if (!metrics.length) return null;
-  return <section aria-label={t("nodePage.telemetry")} className="space-y-2">
-    <div className="flex flex-wrap justify-between gap-2 text-xs text-text-muted"><span>{t("nodePage.telemetry24h")}</span><Timestamp value={points.at(-1)!.t} /></div>
-    <div className="grid grid-cols-2 gap-2">
-      {metrics.map(metric => {
+  const renderMetric = (metric: typeof metrics[number],index:number) => {
         const latest = metric.values.at(-1);
-        return <div key={metric.label} className="min-w-0 rounded border border-border bg-bg-base p-2">
+        return <div key={metric.label} className="min-w-0 rounded-sm border border-border bg-bg-base p-2">
           <p className="text-[10px] text-text-muted">{metric.label}</p>
           <p className="font-mono text-sm text-text-bright">{latest != null && Number.isFinite(latest) ? metric.format(latest) : "—"}</p>
-          <Sparkline values={metric.values} times={points.map(p => p.t)} gapMs={(intervalToMs(telemetry.data?.interval ?? "1h") ?? 3_600_000) * 1.5} color="var(--color-green)" />
+          <Sparkline values={metric.values} times={points.map(p => p.t)} gapMs={(intervalToMs(telemetry.data?.interval ?? "1h") ?? 3_600_000) * 1.5} color={index ? "var(--color-secondary)" : "var(--color-green)"} />
         </div>;
-      })}
+  };
+  return <section aria-label={t("nodePage.telemetry")} className="space-y-1.5">
+    <div className="flex flex-wrap justify-between gap-2 text-xs text-text-muted"><span>{t("nodePage.telemetry24h")}</span><Timestamp value={points.at(-1)!.t} /></div>
+    <div className="grid grid-cols-2 gap-2">
+      {metrics.slice(0, compact ? 2 : metrics.length).map(renderMetric)}
     </div>
+    {compact && metrics.length>2 && <details className="text-[10px]"><summary className="min-h-6 cursor-pointer content-center text-primary">{t("nodeTelemetry.more",{count:metrics.length-2})}</summary><div className="grid grid-cols-2 gap-1.5">{metrics.slice(2).map(renderMetric)}</div></details>}
   </section>;
 }
