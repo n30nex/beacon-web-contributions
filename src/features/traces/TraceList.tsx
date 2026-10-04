@@ -13,8 +13,10 @@ import { snrLevel, SIGNAL_LEVEL_CLASSES, formatSnr } from "../../lib/formatters"
 import { TraceDetailPanel } from "./TraceDetailPanel";
 import type { TraceTagSummary, TraceType } from "../../types/api";
 
-// Traces are modest in number and the list isn't streamed, so a single region-filtered fetch covers
-// the card list (the /traces cursor is sound if pagination is ever needed).
+import { TraceQualityNotice } from "./TraceQualityNotice";
+import { isQuestionable } from "./trace-quality";
+
+// A bounded sample; the hidden count refers only to these loaded tags.
 const TRACE_LIST_LIMIT = 200;
 const TRACE_PATH_PREVIEW_LIMIT = 6;
 
@@ -90,6 +92,8 @@ function TraceTagCard({ tag, selected, onSelect }: {
         {/* pings get the primary tint, traces the amber one, so the two read apart at a glance */}
         {tag.traceType && <Badge variant={tag.traceType === "PING" ? "text" : "trace"}>{tag.traceType}</Badge>}
         <span className="font-mono text-[10px] text-text-dim">{t("traces.pkt", { count: tag.packetCount })} · {t("traces.iata", { count: tag.iataCount })} · {t("traces.hops", { count: tag.pathHashes?.length ?? 0 })}</span>
+
+        <TraceQualityNotice quality={tag.quality} compact />
         <Timestamp value={tag.lastHeardAt} className="ml-auto text-[11px] text-text-dim" />
       </div>
       {tag.pathHashes?.length ? <TracePathPreview hashes={tag.pathHashes} snrs={tag.snrValues ?? []} expanded={selected} /> : null}
@@ -106,6 +110,8 @@ export function TraceList({ onAnalyze, onViewNode }: TraceListProps) {
     { value: "TRACE", label: t("traces.trace") },
     { value: "PING", label: t("traces.ping") },
   ], [t]);
+
+  const [showQuestionable, setShowQuestionable] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<"" | TraceType>("");
 
@@ -125,13 +131,22 @@ export function TraceList({ onAnalyze, onViewNode }: TraceListProps) {
     enabled: isResolved !== false,
   });
 
+  const questionableCount = tags?.filter((tag) => isQuestionable(tag.quality)).length ?? 0;
+  const visibleTags = tags?.filter((tag) => showQuestionable || !isQuestionable(tag.quality));
+  const selectedVisible = visibleTags?.some((tag) => tag.traceTag === selectedTag);
+
   return (
     <div className="flex flex-1 min-h-0 min-w-0 max-w-full">
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <div className="flex flex-wrap shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
           <span className="font-mono text-[11px] text-text-dim">
-            {tags ? t("traces.tagCount", { count: tags.length }) : ""}
+            {tags ? t("traces.tagCount", { count: visibleTags?.length ?? 0 }) : ""}
+            {questionableCount > 0 && !showQuestionable && <> · {t("traces.quality.hidden", { count: questionableCount })}</>}
           </span>
+          <label className="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer">
+            <input type="checkbox" checked={showQuestionable} onChange={(e) => { setShowQuestionable(e.target.checked); setSelectedTag(null); }} />
+            {t("traces.quality.show")}
+          </label>
           <div className="flex items-center gap-2">
             <InfoTip text={t("traces.typeHint")} />
             <Segmented
@@ -145,16 +160,16 @@ export function TraceList({ onAnalyze, onViewNode }: TraceListProps) {
         <div className="flex-1 min-h-0 min-w-0 overflow-y-auto flex flex-col">
           {isLoading || isResolved === false ? (
             <SkeletonRows rows={8} />
-          ) : (tags?.length ?? 0) === 0 ? (
+          ) : (visibleTags?.length ?? 0) === 0 ? (
             <EmptyState title={t("traces.empty")} />
           ) : (
-            tags!.map((tag) => (
+            visibleTags!.map((tag) => (
               <TraceTagCard key={tag.traceTag} tag={tag} selected={tag.traceTag === selectedTag} onSelect={setSelectedTag} />
             ))
           )}
         </div>
       </div>
-      {selectedTag && (
+      {selectedTag && selectedVisible && (
         <TraceDetailPanel tag={selectedTag} onClose={() => setSelectedTag(null)} onAnalyze={onAnalyze} onViewNode={onViewNode} />
       )}
     </div>
