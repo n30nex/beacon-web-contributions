@@ -13,6 +13,12 @@ const hop = (id: string): ResolvedHop => ({ confidence: "high", nodes: [{ id, pu
 const event = (path: ResolvedHop[] = [hop("a"), hop("b"), hop("c")]): WsPacketObservation["data"] => ({ packetHash: "hash", packet: { payloadType: 5, payloadTypeName: "GRP_TXT", routeType: 1, routeTypeName: "FLOOD", isFirstObservation: true, observationCount: 1, scope: "#on" }, observation: { observerId: "obs", observerName: "Observer", iata: "YOW", heardAt: 1, rssi: -90, snr: 5, sourceBroker: "fixture", resolvedPath: path } });
 
 describe("3D topology evidence and bounds", () => {
+  it("groups nodes within the selected shared regions despite a newer outside reception", () => {
+    const multi = { ...a, iatas: [{ iata: "YYZ", lastHeard: 30 }, { iata: "YOW", lastHeard: 20 }, { iata: "YKF", lastHeard: 10 }] };
+    expect(buildTopology([multi], ["YOW", "YKF"]).nodes[0]!.region).toBe("YOW");
+    expect(buildTopology([multi], ["YKF"]).nodes[0]!.region).toBe("YKF");
+    expect(buildTopology([multi]).nodes[0]!.region).toBe("YYZ");
+  });
   it("keeps unlocated identities and only supplied neighbour edges, with stable positions", () => {
     expect(graph.nodes).toHaveLength(3);
     expect(graph.links).toEqual([["a", "b"]]);

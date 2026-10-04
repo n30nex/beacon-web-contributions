@@ -538,7 +538,8 @@
     },
     "header": {
       "settings": "Settings",
-      "github": "GitHub"
+      "github": "GitHub",
+      "changelog": "Changelog"
     },
     "channels": {
       "noMatches": "No matching channels loaded.",
@@ -986,7 +987,7 @@
     "topology": {
       "title": "Topology",
       "eyebrow": "LIVE TOPOLOGY / 3D",
-      "canvas": "3D topology viewed from above. Left-drag pans; right-drag or Shift-left-drag rotates. Mouse wheel zooms. Arrow keys pan, Shift-arrows rotate, plus and minus zoom, Home fits the view and Escape returns to the mesh. Use Find a node for keyboard selection.",
+      "canvas": "3D topology viewed from above. Left-drag pans; right-drag or Shift-left-drag rotates. Mouse wheel zooms. Arrow keys pan, Shift-arrows rotate, plus and minus zoom, Home fits the view and Escape returns to the mesh. Use Find for keyboard selection.",
       "projection": "REGIONAL TOPOLOGY · 3D",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
@@ -1026,7 +1027,7 @@
       "motion": "Animate packets",
       "mix": "Live packet mix · 60s",
       "paths": "{{count}} with drawable segments",
-      "find": "Find a node",
+      "find": "Find",
       "search": "Name or public key",
       "noNodes": "No matching nodes in the loaded view.",
       "neighbours": "{{count}} connections in this view",
@@ -1071,9 +1072,9 @@
       "routeSegments": "Observed routes",
       "routeWindow": "Route history",
       "windows": {
-        "15m": "Routes · 15 minutes",
-        "1h": "Routes · 1 hour",
-        "24h": "Routes · 24 hours"
+        "15m": "Routes · 15m",
+        "1h": "Routes · 1h",
+        "24h": "Routes · 24h"
       },
       "expand": "Full screen",
       "collapse": "Exit full screen",
@@ -1082,7 +1083,7 @@
       "dragAction": "Drag to",
       "inspector": "Node details",
       "close": "Close",
-      "hideInspector": "Close details",
+      "hideInspector": "Close",
       "activity": "Live activity",
       "activityCounts": "Reports {{count}} · Observers {{observers}} · 60s",
       "incomplete": "Gaps",

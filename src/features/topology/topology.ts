@@ -55,11 +55,13 @@ export async function loadTopologyRoutes(iatas: string[] | undefined, signal: Ab
   return { routes: [...routes.values()], capped: true };
 }
 
-export function buildTopology(input: NodeSummary[], isolated = "", routes: KnownRoute[] = []): Topology {
+export function buildTopology(input: NodeSummary[], selectedIatas: string | readonly string[] = "", routes: KnownRoute[] = []): Topology {
+  const allowed = typeof selectedIatas === "string" ? (selectedIatas ? [selectedIatas] : undefined) : selectedIatas;
   const groups = new Map<string, NodeSummary[]>();
   const unique = [...new Map(input.slice(0, NODE_CAP).map(n => [n.id, n])).values()];
   for (const node of unique) {
-    const code = (isolated && node.iatas.some(i => i.iata === isolated) ? isolated : "") || [...node.iatas].sort((a, b) => b.lastHeard - a.lastHeard || a.iata.localeCompare(b.iata))[0]?.iata || "?";
+    const memberships = allowed ? node.iatas.filter(i => allowed.includes(i.iata)) : node.iatas;
+    const code = [...memberships].sort((a, b) => b.lastHeard - a.lastHeard || a.iata.localeCompare(b.iata))[0]?.iata || "?";
     if (!groups.has(code)) groups.set(code, []);
     groups.get(code)!.push(node);
   }
