@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { TraceList } from "../../../src/features/traces/TraceList";
@@ -40,8 +40,8 @@ function renderTraces(onAnalyze = vi.fn(), selection: RegionSelection = ALL_REGI
       <RegionProvider defaultSelection={selection}>{children}</RegionProvider>
     </QueryClientProvider>
   );
-  render(<TraceList onAnalyze={onAnalyze} />, { wrapper });
-  return { onAnalyze };
+  const { container } = render(<TraceList onAnalyze={onAnalyze} />, { wrapper });
+  return { onAnalyze, container };
 }
 
 beforeEach(() => {
@@ -76,6 +76,75 @@ describe("TraceList", () => {
       const card = (await screen.findByText(traceTag)).closest('[role="button"]');
       expect(card).toHaveClass("shrink-0");
     }
+  });
+
+  it("contains a 145-hop preview and expands/collapses it with the report", async () => {
+    const hashes = Array.from({ length: 145 }, (_, i) => i.toString(16).padStart(8, "0"));
+    mockGetTraces.mockResolvedValue([
+      tag("3f2a11c0", 2, { pathHashes: hashes, snrValues: [0, -7.5] }),
+    ]);
+    mockGetTraceDetail.mockResolvedValue(detail);
+
+    const { container, onAnalyze } = renderTraces();
+    const card = await screen.findByRole("button", { name: /3F2A11C0/ });
+    const preview = within(card).getByText("00000000").closest("div");
+
+    // jsdom checks the width/wrapping contract, not rendered pixel geometry.
+    expect(container.firstElementChild).toHaveClass("min-w-0", "max-w-full");
+    expect(card).toHaveClass("shrink-0", "min-w-0", "max-w-full");
+    expect(preview).toHaveClass("min-w-0", "max-w-full", "flex-wrap");
+    expect(preview).not.toHaveClass("whitespace-nowrap");
+    expect(card).toHaveAttribute("aria-expanded", "false");
+    expect(within(card).getByText(/145 hops/)).toBeInTheDocument();
+    expect(within(card).getByText("00000005")).toBeInTheDocument();
+    expect(within(card).queryByText("00000006")).not.toBeInTheDocument();
+    expect(within(card).getByText("… +139")).toBeInTheDocument();
+    expect(within(card).getByText("0.00 dB")).toBeInTheDocument();
+    expect(mockGetTraceDetail).not.toHaveBeenCalled();
+
+    fireEvent.click(within(card).getByText("▸"));
+    expect(card).toHaveAttribute("aria-expanded", "true");
+    expect(within(card).getByText(hashes[144].toUpperCase())).toBeInTheDocument();
+    expect(within(card).queryByText("… +139")).not.toBeInTheDocument();
+    expect(await screen.findByText("Packets")).toBeInTheDocument();
+    expect(mockGetTraceDetail).toHaveBeenCalledWith("3f2a11c0");
+    expect(onAnalyze).not.toHaveBeenCalled();
+
+    fireEvent.click(within(card).getByText("▾"));
+    expect(card).toHaveAttribute("aria-expanded", "false");
+    expect(within(card).queryByText(hashes[144].toUpperCase())).not.toBeInTheDocument();
+    expect(within(card).getByText("… +139")).toBeInTheDocument();
+    expect(screen.queryByText("Packets")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(card, { key: "Enter" });
+    expect(card).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByText("Packets")).toBeInTheDocument();
+    fireEvent.keyDown(card, { key: " " });
+    expect(card).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Packets")).not.toBeInTheDocument();
+  });
+
+  it("expands only the selected row and collapses it when its report closes", async () => {
+    mockGetTraces.mockResolvedValue([
+      tag("3f2a11c0"),
+      tag("9b40de22", 1, { traceType: "PING", pathHashes: ["a1"], snrValues: [] }),
+    ]);
+    mockGetTraceDetail.mockImplementation(async (traceTag) => ({ ...detail, traceTag }));
+
+    renderTraces();
+    const first = await screen.findByRole("button", { name: /3F2A11C0/ });
+    const second = screen.getByRole("button", { name: /9B40DE22/ });
+    fireEvent.click(first);
+    expect(await screen.findByText("Packets")).toBeInTheDocument();
+    expect(first).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(second);
+    expect(first).toHaveAttribute("aria-expanded", "false");
+    expect(second).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(mockGetTraceDetail).toHaveBeenCalledWith("9b40de22"));
+    fireEvent.click(screen.getByRole("button", { name: "Close detail panel" }));
+    expect(second).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Packets")).not.toBeInTheDocument();
   });
 
   it("opens the detail panel with a Packets section listing the trace's packets when a card is clicked", async () => {
