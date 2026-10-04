@@ -16,6 +16,7 @@ import type { TraceTagSummary, TraceType } from "../../types/api";
 // Traces are modest in number and the list isn't streamed, so a single region-filtered fetch covers
 // the card list (the /traces cursor is sound if pagination is ever needed).
 const TRACE_LIST_LIMIT = 200;
+const TRACE_PATH_PREVIEW_LIMIT = 6;
 
 interface TraceListProps {
   onAnalyze: (hash: string | null) => void;
@@ -24,15 +25,17 @@ interface TraceListProps {
 
 // The list now carries the most complete observation's path, so we can show the hops (and the SNR we
 // heard on each) right on the card instead of making people open the detail panel for a quick look.
-function TracePathPreview({ hashes, snrs }: { hashes: string[]; snrs: number[] }) {
+function TracePathPreview({ hashes, snrs, expanded }: { hashes: string[]; snrs: number[]; expanded: boolean }) {
+  const shownHashes = expanded ? hashes : hashes.slice(0, TRACE_PATH_PREVIEW_LIMIT);
+  const hiddenCount = hashes.length - shownHashes.length;
   return (
-    <div className="mt-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-      {hashes.map((hash, i) => {
+    <div className="mt-1 flex min-w-0 max-w-full flex-wrap items-center gap-1">
+      {shownHashes.map((hash, i) => {
         const snr = snrs?.[i];
         const level = snr != null ? snrLevel(snr) : null;
         const sigClass = level ? SIGNAL_LEVEL_CLASSES[level] : "text-text-normal";
         return (
-          <span key={i} className="contents">
+          <span key={i} className="inline-flex shrink-0 items-center gap-1">
             {i > 0 && <span className="text-text-dim" aria-hidden>→</span>}
             <span className="inline-flex shrink-0 items-center gap-1 rounded bg-primary/6 px-1">
               <span className="text-primary font-mono text-[10px] font-semibold">
@@ -48,6 +51,9 @@ function TracePathPreview({ hashes, snrs }: { hashes: string[]; snrs: number[] }
           </span>
         );
       })}
+      {hiddenCount > 0 && (
+        <span className="font-mono text-[10px] text-text-dim">… +{hiddenCount}</span>
+      )}
     </div>
   );
 }
@@ -56,33 +62,37 @@ function TracePathPreview({ hashes, snrs }: { hashes: string[]; snrs: number[] }
 function TraceTagCard({ tag, selected, onSelect }: {
   tag: TraceTagSummary;
   selected: boolean;
-  onSelect: (tag: string) => void;
+  onSelect: (tag: string | null) => void;
 }) {
   const { t } = useTranslation();
   return (
     <div
       role="button"
-      className={`shrink-0 min-h-11 bg-bg-surface border-b px-3 py-1.5 cursor-pointer ${
+      className={`shrink-0 min-h-11 min-w-0 max-w-full bg-bg-surface border-b px-3 py-1.5 cursor-pointer ${
         selected ? "border-primary bg-primary/10" : "border-border hover:border-text-dim/30 hover:bg-bg-raised/50"
       }`}
-      onClick={() => onSelect(tag.traceTag)}
+      onClick={() => onSelect(selected ? null : tag.traceTag)}
       aria-pressed={selected}
+      aria-expanded={selected}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onSelect(tag.traceTag);
+          onSelect(selected ? null : tag.traceTag);
         }
       }}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span className="shrink-0 w-3.5 text-text-muted text-[11px]" aria-hidden>
+          {selected ? "▾" : "▸"}
+        </span>
         <span className="font-mono text-xs font-semibold text-primary tracking-wider">{tag.traceTag.toUpperCase()}</span>
         {/* pings get the primary tint, traces the amber one, so the two read apart at a glance */}
         {tag.traceType && <Badge variant={tag.traceType === "PING" ? "text" : "trace"}>{tag.traceType}</Badge>}
         <span className="font-mono text-[10px] text-text-dim">{t("traces.pkt", { count: tag.packetCount })} · {t("traces.iata", { count: tag.iataCount })} · {t("traces.hops", { count: tag.pathHashes?.length ?? 0 })}</span>
         <Timestamp value={tag.lastHeardAt} className="ml-auto text-[11px] text-text-dim" />
       </div>
-      {tag.pathHashes?.length ? <TracePathPreview hashes={tag.pathHashes} snrs={tag.snrValues ?? []} /> : null}
+      {tag.pathHashes?.length ? <TracePathPreview hashes={tag.pathHashes} snrs={tag.snrValues ?? []} expanded={selected} /> : null}
     </div>
   );
 }
@@ -116,7 +126,7 @@ export function TraceList({ onAnalyze, onViewNode }: TraceListProps) {
   });
 
   return (
-    <div className="flex flex-1 min-h-0">
+    <div className="flex flex-1 min-h-0 min-w-0 max-w-full">
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
           <span className="font-mono text-[11px] text-text-dim">
@@ -132,7 +142,7 @@ export function TraceList({ onAnalyze, onViewNode }: TraceListProps) {
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto flex flex-col">
           {isLoading || isResolved === false ? (
             <SkeletonRows rows={8} />
           ) : (tags?.length ?? 0) === 0 ? (
