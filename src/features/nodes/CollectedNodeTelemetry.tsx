@@ -31,7 +31,7 @@ export function CollectedNodeTelemetry({ publicKey, active, compact = false }: {
   }
   const ordered = [...metrics].sort((a,b) => a[1].priority-b[1].priority || b[1].times.at(-1)!-a[1].times.at(-1)!).slice(0,24);
   const renderMetric = ([id, metric]: typeof ordered[number]) => <div key={id} className="min-w-0 rounded-sm border border-border bg-bg-base px-2 py-1.5" title={`${metric.label} · ${t("nodeTelemetry.collector",{key:metric.collector.slice(0,8)})}`}>
-    <div className="flex items-baseline justify-between gap-1"><p className="truncate text-[10px] text-text-muted" title={metric.label}>{metric.label}</p><p className="shrink-0 font-mono text-sm font-semibold" style={{color:`var(--color-${metric.color})`}}>{metric.values.at(-1)!.toLocaleString(i18n.language, { maximumFractionDigits: 2 })} {metric.unit}</p></div>
+    <div className="flex items-baseline justify-between gap-1"><p className="truncate text-[10px] text-text-muted" title={metric.label}>{compact ? metric.label.replace(t("nodeTelemetry.metrics.temperature"),t("nodeTelemetry.shortTemperature")) : metric.label}</p><p className="shrink-0 font-mono text-sm font-semibold" style={{color:`var(--color-${metric.color})`}}>{metric.values.at(-1)!.toLocaleString(i18n.language, { maximumFractionDigits: 2 })} {metric.unit}</p></div>
     <Sparkline values={metric.values} times={metric.times} gapMs={metric.gapMs} color={`var(--color-${metric.color})`} />
     {!compact && <p className="truncate text-[9px] text-text-muted" title={metric.collector}>{t("nodeTelemetry.collector", { key: metric.collector.slice(0,8) })} · <Timestamp value={metric.times.at(-1)!} /></p>}
   </div>;

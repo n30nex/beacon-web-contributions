@@ -18,7 +18,7 @@ function ObserverNodeTelemetry({ node, active, compact = false }: { node: Node; 
   const exact = observer.data?.publicKey?.toLowerCase() === node.publicKey.toLowerCase();
   const telemetry = useObserverTelemetry(active && exact ? node.observerId ?? null : null, "24h");
   const points = telemetry.data?.points ?? [];
-  if (!exact || !points.length) return null;
+  if (!exact || !points.length) return compact ? <section className="space-y-2 text-[10px] text-text-muted"><p>{t(observer.isError || telemetry.isError ? "nodeTelemetry.loadError" : observer.isPending || (exact && telemetry.isPending) ? "common.loading" : "nodeTelemetry.noData")}</p><Sparkline values={[null,null]} color="var(--color-text-muted)" /></section> : null;
   const metrics = [
     { label: t("observerPage.battery"), values: points.map(p => p.batteryMv != null && p.batteryMv > 0 ? p.batteryMv / 1000 : null), format: (n: number) => `${n.toFixed(2)} V` },
     { label: t("observerPage.uptime"), values: points.map(p => p.uptimeSeconds), format: formatUptime },

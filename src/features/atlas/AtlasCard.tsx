@@ -65,7 +65,7 @@ export function AtlasCard({ pin, range, active, heardOpen, onHeardToggle, onRemo
       {query.isPending ? <p role="status">{t("common.loading")}</p> : query.isError && <p role="status" className="text-warn">{t(node ? "atlas.refreshFailed" : "atlas.nodeUnavailable")} <button type="button" className="min-h-11 underline" onClick={() => void query.refetch()}>{t("atlas.retry")}</button></p>}
       {!node && <CollectedNodeTelemetry publicKey={pin.publicKey} active={active} compact />}
       {node && <>
-        <div className="min-h-[112px]"><NodeTelemetry node={node} active={active} compact /></div>
+        <div className="md:min-h-[112px]"><NodeTelemetry node={node} active={active} compact /></div>
         <section aria-label={t("atlas.activity")}>
           <div className="flex items-baseline justify-between gap-2"><span className="text-[11px]">{t("atlas.reports")}</span><strong className="font-mono text-base text-text-bright">{number(sample.reports.length)}</strong></div>
           <svg role="img" aria-label={t("atlas.activityLabel", { count: sample.reports.length, range: t(`atlas.ranges.${range}`) })} viewBox={`0 0 ${sample.bins.length * 5} 40`} preserveAspectRatio="none" className="mt-1 h-8 w-full text-primary">

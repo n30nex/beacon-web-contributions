@@ -1162,6 +1162,7 @@
       "neighbors": "Voisins · {{count}}"
     },
     "nodeTelemetry": {
+      "shortTemperature": "Temp.",
       "noData": "Aucune télémétrie reçue",
       "more": "Autres mesures ({{count}})",
       "loadError": "Impossible de charger la télémétrie du répéteur.",

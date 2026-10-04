@@ -1126,6 +1126,7 @@
       "neighbors": "Neighbours · {{count}}"
     },
     "nodeTelemetry": {
+      "shortTemperature": "Temp.",
       "noData": "No telemetry received",
       "more": "More telemetry ({{count}})",
       "loadError": "Repeater telemetry could not be loaded.",
