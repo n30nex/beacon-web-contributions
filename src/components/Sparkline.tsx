@@ -24,7 +24,7 @@ export function Sparkline({ values, color, markPeak, times, gapMs }: { values: (
   const peak = values.indexOf(max);
   return <svg width="100%" height={SPARK_H} viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} preserveAspectRatio="none" className="beacon-sparkline mt-1 overflow-visible" style={{color}} aria-hidden>
     <title>{t("charts.gapLegend")}</title>
-    <line data-no-data x1="0" x2={SPARK_W} y1={SPARK_H/2} y2={SPARK_H/2} stroke={color} strokeWidth="0.6" strokeDasharray="2 4" opacity="0.18" />
+    {known.length === 0 && <line data-no-data x1="0" x2={SPARK_W} y1={SPARK_H/2} y2={SPARK_H/2} stroke={color} strokeWidth="0.6" strokeDasharray="2 4" opacity="0.18" />}
     {bridges.map(([a,b]) => <line key={`gap-${a}`} data-gap x1={x(a)} y1={y(values[a]!)} x2={x(b)} y2={y(values[b]!)} stroke={color} strokeWidth="1.3" strokeDasharray="3 3" opacity="0.55" vectorEffect="non-scaling-stroke" />)}
     {runs.map(run => run.length > 1 ? <polyline key={run[0]} fill="none" stroke={color} strokeWidth="1.8" points={run.join(" ")} vectorEffect="non-scaling-stroke" /> : <polyline key={run[0]} data-sample points={`${run[0]} ${run[0]}`} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />)}
     {markPeak && known.length > 0 && <line data-peak x1={x(peak)} x2={x(peak)} y1={y(max)} y2={y(max)} stroke={color} strokeWidth="4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />}

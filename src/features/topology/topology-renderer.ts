@@ -196,13 +196,13 @@ export function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traff
       const q=p(node);
       if (!q.visible || q.x < 8 || q.x > width-8 || q.y < 8 || q.y > height-8) continue;
       const w=Math.min(240,width-24), h=76;
-      const positions=[{x:q.x-w/2,y:q.y-h-25},{x:q.x+20,y:q.y-h-15},{x:q.x-w-20,y:q.y-h-15}];
-      const box=positions.map(pos=>({x:Math.max(8,Math.min(width-w-8,pos.x)),y:Math.max(8,Math.min(height-h-8,pos.y)),w,h})).find(pos=>!placed.some(old=>pos.x<old.x+old.w+8 && pos.x+pos.w+8>old.x && pos.y<old.y+old.h+8 && pos.y+pos.h+8>old.y));
+      const positions=[{x:q.x-w/2,y:q.y-h-25},{x:q.x+20,y:q.y-h-15},{x:q.x-w-20,y:q.y-h-15},{x:q.x-w/2,y:q.y+25}];
+      const box=positions.map(pos=>({x:Math.max(8,Math.min(width-w-8,pos.x)),y:Math.max(8,Math.min(height-h-8,pos.y)),w,h})).find(pos=>(q.x<pos.x-8 || q.x>pos.x+pos.w+8 || q.y<pos.y-8 || q.y>pos.y+pos.h+8) && !placed.some(old=>pos.x<old.x+old.w+8 && pos.x+pos.w+8>old.x && pos.y<old.y+old.h+8 && pos.y+pos.h+8>old.y));
       if (!box) continue; placed.push(box);
       const alpha=motion ? Math.min(1,Math.max(0,(CHAT_MS-(Date.now()-bubble.at))/1600)) : 1;
       ctx!.globalAlpha=alpha;
       ctx!.strokeStyle=colors.secondary;ctx!.lineWidth=1;
-      const sx=Math.max(box.x+8,Math.min(box.x+w-8,q.x)),sy=box.y+h;
+      const sx=Math.max(box.x,Math.min(box.x+w,q.x)),sy=Math.max(box.y,Math.min(box.y+h,q.y));
       ctx!.beginPath();ctx!.moveTo(sx,sy);ctx!.lineTo(q.x,q.y);ctx!.stroke();
       const angle=Math.atan2(q.y-sy,q.x-sx);
       ctx!.beginPath();ctx!.moveTo(q.x,q.y);ctx!.lineTo(q.x-7*Math.cos(angle-.45),q.y-7*Math.sin(angle-.45));ctx!.lineTo(q.x-7*Math.cos(angle+.45),q.y-7*Math.sin(angle+.45));ctx!.closePath();ctx!.fillStyle=colors.secondary;ctx!.fill();
@@ -211,7 +211,7 @@ export function createRenderer(canvas: HTMLCanvasElement, graph: Topology, traff
       ctx!.fillText(bubble.sender,box.x+9,box.y+18,w-18);
       ctx!.font="12px Inter, sans-serif";ctx!.fillStyle=colors.textBright;
       const chars=Array.from(bubble.content);const lines:string[]=[];let line="";
-      for (const char of chars) { if(ctx!.measureText(line+char).width>w-20) {lines.push(line);line="";} line+=char; }
+      for (const char of chars) { if(ctx!.measureText(line+char).width>w-20) { const space=line.lastIndexOf(" "); if(space>0){lines.push(line.slice(0,space));line=line.slice(space+1);} else {lines.push(line);line="";} } line+=char; }
       if(line)lines.push(line);
       for(let i=0;i<Math.min(2,lines.length);i++)ctx!.fillText(lines[i]!.slice(0,i===1 && lines.length>2 ? -2 : undefined)+(i===1 && lines.length>2 ? "…" : ""),box.x+9,box.y+39+i*17,w-18);
     }

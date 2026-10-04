@@ -900,7 +900,7 @@
       "scope": "Portée"
     },
     "charts": {
-      "gapLegend": "Les tirets relient les données manquantes par une estimation. Les points sont des mesures.",
+      "gapLegend": "Traits pleins et points : mesures. Tirets : estimation entre des données manquantes.",
       "uniquePackets": "Paquets uniques",
       "busy": "Occupation"
     },
@@ -1162,6 +1162,7 @@
       "neighbors": "Voisins · {{count}}"
     },
     "nodeTelemetry": {
+      "noData": "Aucune télémétrie reçue",
       "more": "Autres mesures ({{count}})",
       "loadError": "Impossible de charger la télémétrie du répéteur.",
       "collected": "Télémétrie du répéteur · 30 derniers jours",

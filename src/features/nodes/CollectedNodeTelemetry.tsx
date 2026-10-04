@@ -14,7 +14,7 @@ export function CollectedNodeTelemetry({ publicKey, active, compact = false }: {
   const samples = (data.data?.items ?? []).filter(sample => sample.nodeKey === key).sort((a,b) => a.receivedAt-b.receivedAt);
   if (!samples.length) return data.isError ? <section aria-label={t("nodeTelemetry.collected")} className="mb-3 text-xs text-warn">
     <p role="status">{t("nodeTelemetry.loadError")} <button type="button" className="min-h-11 underline" onClick={() => void data.refetch()}>{t("atlas.retry")}</button></p>
-  </section> : null;
+  </section> : compact ? <section aria-label={t("nodeTelemetry.collected")} className="space-y-2 text-[10px] text-text-muted"><p>{t("nodeTelemetry.noData")}</p><Sparkline values={[null,null]} color="var(--color-text-muted)" /></section> : null;
   const metrics = new Map<string, { label: string; collector: string; unit: string; times: number[]; values: number[]; gapMs: number; color: string; priority: number }>();
   for (const sample of samples) {
     const readings = [

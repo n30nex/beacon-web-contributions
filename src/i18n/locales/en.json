@@ -866,7 +866,7 @@
       "scope": "Scope"
     },
     "charts": {
-      "gapLegend": "Dashed lines connect missing samples with an estimate. Dots are measured readings.",
+      "gapLegend": "Solid lines and dots show readings. Dashed lines estimate between missing samples.",
       "uniquePackets": "Unique packets",
       "busy": "Busy"
     },
@@ -1126,6 +1126,7 @@
       "neighbors": "Neighbours · {{count}}"
     },
     "nodeTelemetry": {
+      "noData": "No telemetry received",
       "more": "More telemetry ({{count}})",
       "loadError": "Repeater telemetry could not be loaded.",
       "collected": "Repeater telemetry · last 30 days",
