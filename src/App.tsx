@@ -90,13 +90,19 @@ function RegionWatcher({ wsManager: mgr }: { wsManager: WsManager }) {
 // wouldn't otherwise know was shareable). All-regions clears both params; any legacy ?region is folded
 // in. The guard skips redundant writes (and any setSearchParams feedback loop); replace keeps it out of
 // history.
-function RegionUrlSync() {
+export function RegionUrlSync() {
   const { selection } = useRegionSelection();
+  const previousSelection = useRef(selection);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const next = selectionToParams(selection, searchParams);
+    if (previousSelection.current !== selection) {
+      next.delete("topoNode");
+      next.delete("topoFocus");
+    }
+    previousSelection.current = selection;
     if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true, state: location.state });
   }, [selection, searchParams, setSearchParams, location.state]);
