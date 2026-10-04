@@ -36,11 +36,14 @@ function renderShell(onTabChange: (tab: string) => void = () => {}) {
 }
 
 beforeEach(() => {
+  vi.stubEnv("VITE_CHANGELOG_URL", "");
   delete window.__BEACON_CONFIG__;
   vi.mocked(getIatas).mockReset();
   vi.mocked(getRegions).mockReset().mockResolvedValue([]);
   vi.mocked(getRegion).mockReset();
 });
+
+afterEach(() => { vi.unstubAllEnvs(); delete window.__BEACON_CONFIG__; });
 
 describe("AppShell", () => {
   it("links to the configured preview changelog without requiring it on other instances", () => {

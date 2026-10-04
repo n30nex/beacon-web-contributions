@@ -133,11 +133,11 @@ function RegionSelector() {
       renderTrigger={({ toggle }) => (
         <button
           type="button"
-          className="flex items-center gap-1.5 bg-bg-raised border border-border rounded px-3 py-1 text-text-bright font-mono text-xs font-semibold hover:border-text-dim/30 transition-colors"
+          className="flex min-w-0 max-w-full items-center gap-1.5 bg-bg-raised border border-border rounded px-3 py-1 text-text-bright font-mono text-xs font-semibold hover:border-text-dim/30 transition-colors"
           onClick={toggle}
         >
-          <span className="text-text-muted font-normal text-[11px] uppercase">{t("region.label")}</span>
-          {regionSummaryLabel(selection, t)}
+          <span className="sr-only text-text-muted font-normal text-[11px] uppercase sm:not-sr-only sm:shrink-0">{t("region.label")}</span>
+          <span className="min-w-0 truncate">{regionSummaryLabel(selection, t)}</span>
           <span className="text-text-dim text-[11px]">▾</span>
         </button>
       )}
