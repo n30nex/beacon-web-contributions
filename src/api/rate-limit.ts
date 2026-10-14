@@ -62,3 +62,7 @@ export function subscribeRateLimit(listener: () => void): () => void {
     listeners.delete(listener);
   };
 }
+
+// Wait out Retry-After before retrying a failed request.
+export const queryRetryDelay = (attempt: number, error: Error) =>
+  (error as { retryAfterMs?: number }).retryAfterMs ?? Math.min(1000 * 2 ** attempt, 30_000);

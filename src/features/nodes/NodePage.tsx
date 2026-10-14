@@ -48,7 +48,7 @@ export function NodePage({ nodeId, onViewNode, onViewObserver, onAnalyzePacket }
         {reports.isError && <p role="alert" className="text-sm text-warn">{t("atlas.refreshFailed")}</p>}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            { label: t("atlas.reports"), value: reports.data ? number(sample.reports.length) : "—", values: sample.bins },
+            { label: t("atlas.reports"), value: reports.data ? number(sample.reports.length) : "—", values: sample.counts },
             { label: t("atlas.snr"), value: number(sample.snr, " dB"), values: ordered.map(p => p.rssi === 0 && p.snr === 0 ? null : p.snr ?? null) },
             { label: t("atlas.rssi"), value: number(sample.rssi, " dBm"), values: ordered.map(p => p.rssi === 0 && p.snr === 0 ? null : p.rssi ?? null) },
             { label: t("atlas.hops"), value: number(sample.hops), values: ordered.map(p => p.hopCount ?? null) },
