@@ -10,15 +10,17 @@ export function Card({
   right,
   children,
   className,
+  wrap,
 }: {
   title: ReactNode;
   right?: ReactNode;
   children: ReactNode;
   className?: string;
+  wrap?: boolean;
 }) {
   return (
     <div className={`rounded-lg border border-border bg-bg-surface p-3.5 ${className ?? ""}`}>
-      <div className="mb-2.5 flex items-center justify-between gap-2">
+      <div className={`mb-2.5 flex items-center justify-between gap-2 ${wrap ? "flex-wrap" : ""}`}>
         <div className="font-mono text-[11px] font-semibold uppercase tracking-wider text-text-normal">{title}</div>
         {right}
       </div>
@@ -36,6 +38,8 @@ export function StatCard({
   markPeak,
   presence,
   sublabel,
+  compact,
+  interpolateGaps,
 }: {
   label: string;
   value: ReactNode;
@@ -44,6 +48,8 @@ export function StatCard({
   markPeak?: boolean;
   presence?: boolean[];
   sublabel?: ReactNode;
+  compact?: boolean;
+  interpolateGaps?: boolean;
 }) {
   return (
     <div className="rounded-lg border border-border bg-bg-surface px-3.5 py-3">
@@ -51,8 +57,8 @@ export function StatCard({
         <span className="min-w-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</span>
         {sublabel && <span className="min-w-0 max-w-full truncate font-mono text-[9px] text-text-dim">{sublabel}</span>}
       </div>
-      <div className="mt-0.5 font-mono text-xl font-bold tabular-nums text-text-bright sm:text-2xl">{value}</div>
-      {presence ? <PresenceStrip hours={presence} color={accent} /> : spark ? <Sparkline values={spark} color={accent} markPeak={markPeak} /> : <div className="mt-1.5 h-[20px]" />}
+      <div className={`mt-0.5 font-mono text-xl font-bold tabular-nums text-text-bright ${compact ? "" : "sm:text-2xl"}`}>{value}</div>
+      {presence ? <PresenceStrip hours={presence} color={accent} /> : spark ? <Sparkline values={spark} color={accent} markPeak={markPeak} interpolateGaps={interpolateGaps} /> : <div className="mt-1.5 h-[20px]" />}
     </div>
   );
 }

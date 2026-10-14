@@ -44,13 +44,13 @@ describe("My Atlas", () => {
     expect(screen.getByRole("searchbox")).toHaveValue(pin.publicKey);
     fireEvent.click(await screen.findByRole("button", { name: "Add repeater telemetry card" }));
     await screen.findByText("4.15 V");
-    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).nodes[0]).toEqual({ id: "", publicKey: pin.publicKey, name: "" });
+    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).cards[0]).toEqual({ kind: "node", id: "", publicKey: pin.publicKey, name: "" });
     expect(api.getNode).not.toHaveBeenCalled();
     expect(api.getNodeObservations).not.toHaveBeenCalled();
   });
   it("does not scan nodes or packets before a search or selection", () => {
     mount();
-    expect(screen.getByText("Build your own view of the mesh")).toBeInTheDocument();
+    expect(screen.getByText("No cards saved")).toBeInTheDocument();
     expect(api.getNodesPage).not.toHaveBeenCalled();
     expect(api.getNode).not.toHaveBeenCalled();
     expect(api.getPacketDetail).not.toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe("My Atlas", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add Renamed repeater" }));
     expect(await screen.findByRole("article", { name: "Renamed repeater" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Renamed repeater is saved" })).toBeDisabled();
-    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).nodes).toHaveLength(1);
+    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).cards).toHaveLength(1);
     view.unmount(); mount();
     expect(await screen.findByRole("article", { name: "Renamed repeater" })).toBeInTheDocument();
     expect(api.getNodeObservations).toHaveBeenCalledWith(pin.id, { limit: 200 }, expect.any(AbortSignal));
@@ -87,7 +87,7 @@ describe("My Atlas", () => {
     expect(within(first).getByRole("button", { name: "Heard by" })).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(within(first).getByText("Manage card"));
     fireEvent.click(within(first).getByRole("button", { name: "Move later" }));
-    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).nodes[0].publicKey).toBe(second.publicKey);
+    expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).cards[0].publicKey).toBe(second.publicKey);
     fireEvent.click(screen.getByRole("button", { name: "3 days" }));
     expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).range).toBe("3d");
     fireEvent.click(within(first).getByRole("button", { name: "Remove card" }));
@@ -109,7 +109,7 @@ describe("My Atlas", () => {
     await screen.findByRole("article", { name: "Renamed repeater" });
     expect(screen.getByRole("button", { name: "3 days" })).toHaveAttribute("aria-pressed", "true");
     act(() => window.dispatchEvent(new StorageEvent("storage", { key: null, newValue: null })));
-    expect(screen.getByText("Build your own view of the mesh")).toBeInTheDocument();
+    expect(screen.getByText("No cards saved")).toBeInTheDocument();
   });
   it("does not query a retained but inactive page", () => {
     save(); mount(false);
@@ -126,7 +126,7 @@ describe("My Atlas", () => {
     expect(screen.queryByRole("meter")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Manage card"));
     fireEvent.click(screen.getByRole("button", { name: "Remove card" }));
-    expect(screen.getByText("Build your own view of the mesh")).toBeInTheDocument();
+    expect(screen.getByText("No cards saved")).toBeInTheDocument();
   });
   it("does not expose observer links for a different full origin identity", async () => {
     save(); vi.mocked(api.getPacketDetail).mockResolvedValue({ originPubkey: second.publicKey, observations: [] } as unknown as PacketDetail); mount();

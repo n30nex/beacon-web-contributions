@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { ATLAS_KEY, parseAtlas, type SavedAtlas } from "./atlas";
+import { ATLAS_KEY, ATLAS_LEGACY_KEY, parseAtlas, type SavedAtlas } from "./atlas";
 
 export function useSavedAtlas() {
   const [initial] = useState(() => {
-    try { return { value: parseAtlas(localStorage.getItem(ATLAS_KEY)), failed: false }; }
-    catch { return { value: parseAtlas(null), failed: true }; }
+    try {
+      return { value: parseAtlas(localStorage.getItem(ATLAS_KEY) ?? localStorage.getItem(ATLAS_LEGACY_KEY)), failed: false };
+    } catch {
+      return { value: parseAtlas(null), failed: true };
+    }
   });
   const [saved, setSaved] = useState(initial.value);
   const [storageFailed, setStorageFailed] = useState(initial.failed);
@@ -22,8 +25,12 @@ export function useSavedAtlas() {
     const next = change(current.current);
     current.current = next;
     setSaved(next);
-    try { localStorage.setItem(ATLAS_KEY, JSON.stringify(next)); setStorageFailed(false); }
-    catch { setStorageFailed(true); }
+    try {
+      localStorage.setItem(ATLAS_KEY, JSON.stringify(next));
+      setStorageFailed(false);
+    } catch {
+      setStorageFailed(true);
+    }
   };
   return { saved, update, storageFailed };
 }
