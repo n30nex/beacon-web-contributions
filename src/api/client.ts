@@ -13,6 +13,7 @@ import type {
   PayloadBreakdownItem,
   TopNode,
   TopObserver,
+  AdvertiserSort,
   TopAdvertiser,
   TopTalker,
   RadioPreset,
@@ -111,7 +112,7 @@ function statsRegionParams(r: StatsRegion): { iatas?: string; region?: string } 
 
 export function getPackets(
   iatas: string[] | undefined,
-  params?: { cursor?: number; limit?: number; payloadTypes?: number[]; routeTypes?: number[]; scopes?: string[] },
+  params?: { cursor?: number; limit?: number; payloadTypes?: number[]; routeTypes?: number[]; scopes?: string[]; hashPrefix?: string },
 ): Promise<CursorPage<PacketSummary>> {
   if (noIatas(iatas)) return Promise.resolve(emptyPage());
   return request("/packets", {
@@ -121,11 +122,23 @@ export function getPackets(
     payloadTypes: params?.payloadTypes?.length ? params.payloadTypes.join(",") : undefined,
     routeTypes: params?.routeTypes?.length ? params.routeTypes.join(",") : undefined,
     scopes: params?.scopes?.length ? params.scopes.join(",") : undefined,
+    hashPrefix: params?.hashPrefix,
   });
 }
 
 export function getPacketDetail(packetHash: string, signal?: AbortSignal): Promise<PacketDetail> {
   return request(`/packets/${packetHash}`, undefined, signal);
+}
+
+// /info: the oldest client versions this server accepts (null = no requirement) and its own version.
+export interface ServerInfo {
+  minAppVersion: string | null;
+  minWebVersion: string | null;
+  serverVersion: string;
+}
+
+export function getServerInfo(): Promise<ServerInfo> {
+  return request("/info");
 }
 
 export function getIatas(): Promise<IataCode[]> {
@@ -231,21 +244,21 @@ export function getRouteEvidence(iata: string, pathKey: string, params: { range?
   return request(`/routes/${encodeURIComponent(iata)}/${encodeURIComponent(pathKey)}/observations`, params, signal);
 }
 
-// Search known routes for a path between two node hash prefixes within a single IATA. All three params
-// are required by the server.
-export function searchKnownRoutes(iata: string, from: string, to: string): Promise<KnownRoute[]> {
-  return request("/routes/search", { iata, from, to });
+// Route search between two node hash prefixes. iatas narrows the search; omitted means every IATA.
+// /routes/search returns routes within one IATA, /routes/cross routes that cross between two.
+const iataList = (iatas: string[] | undefined) => (iatas?.length ? iatas.join(",") : undefined);
+
+export function searchKnownRoutes(iatas: string[] | undefined, from: string, to: string, signal?: AbortSignal): Promise<KnownRoute[]> {
+  return request("/routes/search", { iatas: iataList(iatas), from, to }, signal);
 }
 
-// Search routes that cross IATA boundaries, from a hash in one IATA to a hash in another. All four
-// params are required by the server.
 export function searchCrossIATARoutes(
+  iatas: string[] | undefined,
   fromHash: string,
-  fromIata: string,
   toHash: string,
-  toIata: string,
+  signal?: AbortSignal,
 ): Promise<CrossIATARoute[]> {
-  return request("/routes/cross", { fromHash, fromIata, toHash, toIata });
+  return request("/routes/cross", { iatas: iataList(iatas), fromHash, toHash }, signal);
 }
 
 // Trace tags. /traces returns a bare array of per-tag summaries (ordered newest-heard first, cursor is
@@ -427,8 +440,8 @@ export function getTopObservers(iatas?: StatsRegion, since?: number, limit = 10)
   return request("/stats/top-observers", { ...statsRegionParams(iatas), since, limit });
 }
 
-export function getTopAdvertisers(iatas?: StatsRegion, since?: number, limit = 10): Promise<TopAdvertiser[]> {
-  return request("/stats/top-advertisers", { ...statsRegionParams(iatas), since, limit });
+export function getTopAdvertisers(iatas: StatsRegion | undefined, since: number | undefined, sort: AdvertiserSort, limit = 10): Promise<TopAdvertiser[]> {
+  return request("/stats/top-advertisers", { ...statsRegionParams(iatas), since, sort, limit });
 }
 
 export function getTopTalkers(iatas?: StatsRegion, since?: number, limit = 10): Promise<TopTalker[]> {

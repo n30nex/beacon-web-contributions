@@ -284,7 +284,42 @@
       "noRecentPackets": "No recent packets",
       "observations_one": "{{formatted}} obs",
       "observations_other": "{{formatted}} obs",
-      "hops": "Hops"
+      "hops": "Hops",
+            "hardware": "Hardware",
+      "power": "Power",
+      "antenna": "Antenna",
+      "powerSource": "Power source",
+      "powerSources": {
+        "mains": "Mains",
+        "solar": "Solar",
+        "battery": "Battery",
+        "poe": "PoE"
+      },
+      "height": "Height",
+      "heightAgl": "{{value}} m AGL",
+      "heightAsl": "{{value}} m ASL",
+      "admins": "Admins",
+      "mmDefaultScope": "Default scope",
+      "scopeState": {
+        "unknown": "Unknown",
+        "none": "None"
+      },
+      "scopeSource": {
+        "advert": "advert",
+        "reported": "reported"
+      },
+      "confirmedScopes": "Confirmed scopes",
+      "noConfirmedScopes": "None confirmed",
+      "observedPackets_one": "observed {{count}} packet",
+      "observedPackets_other": "observed {{count}} packets",
+      "observed": "observed",
+      "reported": "reported",
+      "uploaded": "uploaded",
+      "meshmapper": "MeshMapper",
+      "fromMeshMapper": "From MeshMapper",
+      "updated": "updated",
+      "carpeater": "CARpeater",
+      "carpeaterHint": "Mobile repeater in a vehicle: its position moves."
     },
     "nodes": {
       "lastHeard": "last heard {{ago}}",
@@ -736,9 +771,16 @@
       "search": "Search",
       "clear": "Clear",
       "searching": "Searching…",
-      "noCross": "No routes between these areas",
+      "badHash": "Hashes must be 2, 4, 6 or 8 hex characters",
+      "tooManyAreas": "Pick at most 100 areas",
+      "timeout": "Route search timed out — narrow the areas or use a longer hash.",
+      "searchFailed": "Route search failed",
       "noMatches": "No matching routes",
       "empty": "No routes"
+    },
+    "versionGate": {
+      "message": "This Beacon server needs Beacon Web {{min}} or newer (this is {{current}}). Reload the page; if this keeps appearing, the web container needs updating.",
+      "reload": "Reload"
     },
     "routeDetail": {
       "title": "Route Detail",
@@ -833,7 +875,7 @@
       "flood": "Flood",
       "direct": "Direct",
       "topAdvertisers": "Top advertisers · {{range}}",
-      "floodDirect": "flood · direct",
+      "sortBy": "Sort advertisers by",
       "noAdvertisers": "No advertisers",
       "topTalkers": "Top talkers · {{range}}",
       "byName": "by name"
