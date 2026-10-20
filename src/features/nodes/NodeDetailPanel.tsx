@@ -14,6 +14,7 @@ import type { NodeObservation, NodeNeighbor } from "./types";
 import { ForeignNodeBadge } from "./ForeignNodeBadge";
 import { MeshMapperSection } from "./MeshMapperSection";
 import { Tooltip } from "../../components/Tooltip";
+import { EmojiText } from "../../components/EmojiText";
 
 function NodeNeighborRow({ neighbor, onClick }: { neighbor: NodeNeighbor; onClick?: () => void }) {
   const { t } = useTranslation();
@@ -24,7 +25,7 @@ function NodeNeighborRow({ neighbor, onClick }: { neighbor: NodeNeighbor; onClic
     >
       <div className="flex items-center gap-2 text-[11px]">
         <span className={`font-mono font-semibold tracking-wider truncate ${neighbor.name ? "text-primary" : "text-text-dim italic"}`}>
-          {neighbor.name ?? formatHex(neighbor.id)}
+          <EmojiText text={neighbor.name ?? formatHex(neighbor.id)} />
         </span>
         <NodeTypeBadge typeName={neighbor.nodeTypeName} />
         <IataChip>{neighbor.iata}</IataChip>
@@ -128,7 +129,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
           <Section title={t("nodeDetail.summary")} first>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={`font-mono text-xs font-semibold tracking-wider ${node.name ? "text-primary" : "text-text-dim italic"}`}>
-                  {node.name ?? formatHex(node.id)}
+                  <EmojiText text={node.name ?? formatHex(node.id)} />
                 </span>
                 <NodeTypeBadge typeName={node.nodeTypeName} observer={node.isObserver} />
                 <ForeignNodeBadge possiblyForeign={node.possiblyForeign} />
