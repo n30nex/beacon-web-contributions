@@ -285,7 +285,7 @@
       "observations_one": "{{formatted}} obs",
       "observations_other": "{{formatted}} obs",
       "hops": "Hops",
-            "hardware": "Hardware",
+      "hardware": "Hardware",
       "power": "Power",
       "antenna": "Antenna",
       "powerSource": "Power source",
@@ -659,7 +659,11 @@
       "no": "No",
       "fieldName": "Name",
       "fieldPubkey": "Public Key",
-      "all": "All"
+      "all": "All",
+      "telemetry": "Telemetry",
+      "telemetryAvailable": "Available",
+      "telemetryHistory": "Repeaters with telemetry in the last {{days}} days. Older readings are retained history, not live status.",
+      "telemetryLoadError": "Telemetry availability could not be loaded. A previous result may be shown. Retry or clear this filter."
     },
     "packetAnalyzer": {
       "title": "Packet Analyzer",
@@ -1253,7 +1257,8 @@
         "illuminance": "Light",
         "luminosity": "Light"
       },
-      "addCard": "Add repeater telemetry card"
+      "addCard": "Add repeater telemetry card",
+      "refreshFailed": "Refresh failed; showing the last loaded sample."
     }
   }
 }

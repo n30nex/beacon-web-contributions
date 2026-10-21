@@ -13,6 +13,7 @@ import { hasMapLocation } from "../map/location";
 import type { NodeObservation, NodeNeighbor } from "./types";
 import { ForeignNodeBadge } from "./ForeignNodeBadge";
 import { MeshMapperSection } from "./MeshMapperSection";
+import { CollectedNodeTelemetry } from "./CollectedNodeTelemetry";
 import { Tooltip } from "../../components/Tooltip";
 import { EmojiText } from "../../components/EmojiText";
 
@@ -176,6 +177,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
             )}
 
             {node.meshmapper && <MeshMapperSection mm={node.meshmapper} />}
+            {node.nodeType === 2 && <CollectedNodeTelemetry publicKey={node.publicKey} active />}
 
             <Section title={t("nodeDetail.capabilities")}>
               <div className="flex flex-col gap-0.5 font-mono text-[13px]">

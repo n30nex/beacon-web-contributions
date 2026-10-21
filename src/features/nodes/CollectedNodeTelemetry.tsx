@@ -13,8 +13,8 @@ export function CollectedNodeTelemetry({ publicKey, active, compact = false }: {
     enabled: active && /^[0-9a-f]{64}$/.test(key), staleTime: 300_000, retry: false, refetchInterval: 300_000, refetchIntervalInBackground: false });
   const samples = (data.data?.items ?? []).filter(sample => sample.nodeKey === key).sort((a,b) => a.receivedAt-b.receivedAt);
   if (!samples.length) return data.isError ? <section aria-label={t("nodeTelemetry.collected")} className="mb-3 text-xs text-warn">
-    <p role="status">{t("nodeTelemetry.loadError")} <button type="button" className="min-h-11 underline" onClick={() => void data.refetch()}>{t("atlas.retry")}</button></p>
-  </section> : compact ? <section aria-label={t("nodeTelemetry.collected")} className="space-y-2 text-[10px] text-text-muted"><p>{t("nodeTelemetry.noData")}</p><Sparkline values={[null,null]} color="var(--color-text-muted)" /></section> : null;
+    <p role="status">{t("nodeTelemetry.loadError")} <button type="button" className="min-h-11 underline" onClick={() => void data.refetch()}>{t("observerPage.retry")}</button></p>
+  </section> : null;
   const metrics = new Map<string, { label: string; collector: string; unit: string; times: number[]; values: number[]; gapMs: number; color: string; priority: number }>();
   for (const sample of samples) {
     const readings = [
@@ -37,7 +37,7 @@ export function CollectedNodeTelemetry({ publicKey, active, compact = false }: {
   </div>;
   return <section aria-label={t("nodeTelemetry.collected")} className="space-y-1.5">
     <div className="flex flex-wrap justify-between gap-1 text-[10px] text-text-muted"><span>{t("nodeTelemetry.collected")}</span><Timestamp value={samples.at(-1)!.receivedAt} /></div>
-    {data.isError && <p role="status" className="text-xs text-warn">{t("atlas.refreshFailed")}</p>}
+    {data.isError && <p role="status" className="text-xs text-warn">{t("nodeTelemetry.refreshFailed")}</p>}
     {metrics.size > 24 && <p className="text-xs text-text-muted">{t("nodeTelemetry.limit")}</p>}
     <div className="grid grid-cols-2 gap-1.5">{ordered.slice(0,compact ? 2 : ordered.length).map(renderMetric)}</div>
     {compact && ordered.length>2 && <details className="text-[10px]"><summary className="min-h-6 cursor-pointer content-center text-primary">{t("nodeTelemetry.more",{count:ordered.length-2})}</summary><div className="mt-1 grid grid-cols-2 gap-1.5">{ordered.slice(2).map(renderMetric)}</div></details>}

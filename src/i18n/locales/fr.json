@@ -639,7 +639,11 @@
       "no": "Non",
       "fieldName": "Nom",
       "fieldPubkey": "Clé publique",
-      "all": "Tous"
+      "all": "Tous",
+      "telemetry": "Télémétrie",
+      "telemetryAvailable": "Disponible",
+      "telemetryHistory": "Répéteurs avec télémétrie au cours des {{days}} derniers jours. Les anciennes mesures sont historiques, pas un état en direct.",
+      "telemetryLoadError": "La disponibilité de la télémétrie n’a pas pu être chargée. Un résultat précédent peut être affiché. Réessayez ou désactivez ce filtre."
     },
     "packetAnalyzer": {
       "title": "Analyseur de paquets",
@@ -1256,7 +1260,8 @@
         "illuminance": "Luminosité",
         "luminosity": "Luminosité"
       },
-      "addCard": "Ajouter la carte de télémétrie du répéteur"
+      "addCard": "Ajouter la carte de télémétrie du répéteur",
+      "refreshFailed": "Échec de l’actualisation ; affichage du dernier échantillon chargé."
     }
   }
 }
