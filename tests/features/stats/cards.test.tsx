@@ -41,16 +41,17 @@ it("draws isolated samples and dashed gap connectors without filling missing rea
 });
 
 it("keeps isolated readings visible without connecting across missing hours", () => {
-  const { container } = render(<StatCard label="Signal" value="2 dB" accent="green" spark={[0, null, 4]} />);
-  expect(container.querySelectorAll("polyline")).toHaveLength(0);
+  const { container } = render(<StatCard label="Signal" value="2 dB" accent="green" spark={[0, null, 4]} interpolateGaps={false} />);
+  expect(container.querySelectorAll("[data-gap]")).toHaveLength(0);
   const points = [...container.querySelectorAll("[data-sample]")];
-  expect(points.map(point => point.getAttribute("x1"))).toEqual(["0", "120"]);
+  expect(points.map(point => Number(point.getAttribute("points")!.split(",")[0]))).toEqual([2, 118]);
 });
 
 it("draws a single known value at a finite position, including zero", () => {
   const { container } = render(<StatCard label="Signal" value="0 dB" accent="green" spark={[0]} />);
   const point = container.querySelector("[data-sample]");
   expect(point).not.toBeNull();
-  expect(point?.getAttribute("x1")).toBe("60");
-  expect(Number.isFinite(Number(point?.getAttribute("y1")))).toBe(true);
+  const [x, y] = point!.getAttribute("points")!.split(" ")[0]!.split(",").map(Number);
+  expect(x).toBe(60);
+  expect(Number.isFinite(y)).toBe(true);
 });
