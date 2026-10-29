@@ -59,6 +59,8 @@ interface MapSettingsPanelProps {
   onNeighborLinesChange: (mode: NeighborLinesMode) => void;
   borders: boolean;
   onBordersChange: (on: boolean) => void;
+  terrain: boolean;
+  onTerrainChange: (on: boolean) => void;
   // builds deep-link params for the current view, evaluated at copy time (reads the live camera)
   buildShareParams: () => Record<string, string | null>;
   // Live Map forces clustering off while it runs; the saved choice comes back afterwards
@@ -76,6 +78,8 @@ export function MapSettingsPanel({
   onNeighborLinesChange,
   borders,
   onBordersChange,
+  terrain,
+  onTerrainChange,
   buildShareParams,
   dimNodes = false,
   onDimNodesChange,
@@ -175,6 +179,15 @@ export function MapSettingsPanel({
               className="w-full"
             />
             {borders && <BorderLegend />}
+          </Section>
+          <Section title={t("map.terrain")}>
+            <SegmentedControl
+              ariaLabel={t("map.terrainLabel")}
+              options={[on, off]}
+              value={terrain ? "on" : "off"}
+              onChange={(v) => onTerrainChange(v === "on")}
+              className="w-full"
+            />
           </Section>
           <div className="px-3 py-2.5 border-t border-border-subtle flex justify-end">
             <CopyLinkButton
