@@ -13,6 +13,7 @@ import { hasMapLocation } from "../map/location";
 import type { NodeObservation, NodeNeighbor } from "./types";
 import { ForeignNodeBadge } from "./ForeignNodeBadge";
 import { MeshMapperSection } from "./MeshMapperSection";
+import { NodeScopes } from "./NodeScopes";
 import { CollectedNodeTelemetry } from "./CollectedNodeTelemetry";
 import { Tooltip } from "../../components/Tooltip";
 import { EmojiText } from "../../components/EmojiText";
@@ -176,6 +177,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
               </Section>
             )}
 
+            <NodeScopes node={node} />
             {node.meshmapper && <MeshMapperSection mm={node.meshmapper} />}
             {node.nodeType === 2 && <CollectedNodeTelemetry publicKey={node.publicKey} active />}
 
@@ -185,7 +187,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                 <Field label={t("nodeDetail.multibytePaths")} value={node.supportsMultibytePaths ? t("nodeDetail.yes") : t("nodeDetail.no")} />
                 <Field label={t("nodeDetail.multibyteTraces")} value={node.supportsMultibyteTraces ? t("nodeDetail.yes") : t("nodeDetail.no")} />
                 {node.radio && <Field label={t("nodeDetail.radio")} value={formatRadio(node.radio) ?? "—"} />}
-                {node.defaultScope && <Field label={t("nodeDetail.scope")} value={node.defaultScope} />}
+                {node.defaultScope && <Field label={t("map.scopeAdvert")} value={node.defaultScope} />}
               </div>
             </Section>
 
