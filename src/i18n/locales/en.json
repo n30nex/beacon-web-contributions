@@ -649,7 +649,15 @@
         "closePopup": "Close popup"
       },
       "liveNodes": "Live node icons",
-      "dimLiveNodes": "Dim inactive nodes during live traffic"
+      "dimLiveNodes": "Dim inactive nodes during live traffic",
+      "repeaterScopes": "Repeater scopes",
+      "scopesInView": "Scopes in view",
+      "scopeLegend": "Repeater scope legend",
+      "scopesSource": "Last matched advert scope (MQTT). Counts use loaded repeater locations.",
+      "scopeUnknown": "Scope unknown",
+      "scopeOther": "Additional scopes",
+      "noRepeatersInView": "No repeaters in view.",
+      "scopeClusters": "Clusters show the most common scope. Ties and unknowns stay neutral. A shared scope is not proof of a link."
     },
     "nodeFilters": {
       "label": "Node filters",
