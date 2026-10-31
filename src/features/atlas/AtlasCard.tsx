@@ -1,3 +1,4 @@
+import { AtlasScopes } from "../nodes/NodeScopes";
 import { PreviewAtlasExtras } from "./PreviewAtlasExtras";
 import { NodeTypeBadge } from "../../components/NodeTypeBadge";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -201,6 +202,7 @@ export function AtlasCard({
       {nodePin && !node && <PreviewAtlasExtras publicKey={nodePin.publicKey} active={active} />}
       {view === "analytics" && node && (
         <div ref={body} className="flex flex-1 flex-col gap-3">
+          <AtlasScopes node={node}/>
           <PreviewAtlasExtras node={node} publicKey={node.publicKey} active={active} sample={sample} updatedAt={query.dataUpdatedAt} onViewNode={onViewNode} />
           <div className="grid flex-1 grid-cols-2 gap-3">
             <StatCard

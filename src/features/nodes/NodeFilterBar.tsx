@@ -1,3 +1,4 @@
+import type { ScopeMatch } from "./scope-evidence";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchBar, type SearchFieldOption } from "../../components/SearchBar";
@@ -23,6 +24,7 @@ interface NodeFilterBarProps {
   scopeFilter: string;
   onScopeChange: (s: string) => void;
   scopeOptions: string[];
+  scopeMatch?: ScopeMatch; onScopeMatchChange?: (mode:ScopeMatch)=>void;
   telemetryFilter?: boolean;
   onTelemetryChange?: (enabled: boolean) => void;
 }
@@ -40,7 +42,7 @@ export function NodeFilterBar({
   onTracesChange,
   scopeFilter,
   onScopeChange,
-  scopeOptions,
+  scopeOptions, scopeMatch="repeated", onScopeMatchChange,
   telemetryFilter = false,
   onTelemetryChange,
 }: NodeFilterBarProps) {
@@ -50,12 +52,12 @@ export function NodeFilterBar({
   // close the sheet when leaving mobile — derive during render, not in an effect
   if (sheetOpen && !isMobile) setSheetOpen(false);
 
-  const activeCount = [typeFilter, pathsFilter, tracesFilter, scopeFilter, telemetryFilter].filter(Boolean).length;
+  const activeCount = [typeFilter, pathsFilter, tracesFilter, scopeFilter, scopeMatch==="none", telemetryFilter].filter(Boolean).length;
   const clearAll = () => {
     onTypeChange("");
     onPathsChange("");
     onTracesChange("");
-    onScopeChange("");
+    onScopeChange(""); onScopeMatchChange?.("repeated");
     onTelemetryChange?.(false);
   };
 
@@ -76,7 +78,8 @@ export function NodeFilterBar({
       {onTelemetryChange && <SelectDropdown label={t("nodeFilters.telemetry")} options={[{value: "available", label: t("nodeFilters.telemetryAvailable")}]} allLabel={t("nodeFilters.any")} value={telemetryFilter ? "available" : ""} onChange={(value) => onTelemetryChange(value === "available")} fullWidth={fullWidth} />}
       <SelectDropdown label={t("nodeFilters.multibytePaths")} options={multibyteOptions} allLabel={t("nodeFilters.any")} value={pathsFilter} onChange={(v) => onPathsChange(v as MultibyteFilter)} fullWidth={fullWidth} />
       <SelectDropdown label={t("nodeFilters.multibyteTraces")} options={multibyteOptions} allLabel={t("nodeFilters.any")} value={tracesFilter} onChange={(v) => onTracesChange(v as MultibyteFilter)} fullWidth={fullWidth} />
-      {scopeOptions.length > 0 && (
+      {onScopeMatchChange&&<label className="flex items-center gap-1 text-[11px] text-text-muted">{t("scopeView.mode")}<select aria-label={t("scopeView.mode")} className="min-h-8 rounded-sm border border-border bg-bg-surface px-2" value={scopeMatch} onChange={e=>onScopeMatchChange(e.target.value as ScopeMatch)}>{["repeated","any","default","none"].map(m=><option key={m} value={m}>{t(`scopeView.${m}`)}</option>)}</select></label>}
+      {scopeOptions.length > 0 && scopeMatch!=="none" && (
         <SelectDropdown label={t("nodeFilters.scope")} options={scopeOptions.map((s) => ({ value: s, label: s }))} allLabel={t("nodeFilters.any")} value={scopeFilter} onChange={onScopeChange} fullWidth={fullWidth} />
       )}
     </>
