@@ -17,6 +17,15 @@ function mount(nodeId = id) {
   return actions;
 }
 describe("full node page", () => {
+  it("shows the same optional profile as the inspector without another detail request", async () => {
+    vi.mocked(getNode).mockClear().mockResolvedValue({ ...node, nodeType: 2, meshmapper: { fetchedAt: now, site: { hardware: "Site board", powerSource: "solar" }, admins: [], scopes: [], carpeater: false, profileUrl: "https://ykf.meshmapper.net/" } });
+    vi.mocked(getNodeNeighbors).mockResolvedValue([]);
+    vi.mocked(getNodeObservations).mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
+    mount();
+    expect(await screen.findByText("Site board")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View in MeshMapper/ })).toHaveAttribute("href", "https://ykf.meshmapper.net/");
+    expect(getNode).toHaveBeenCalledTimes(1);
+  });
   it("distinguishes a server failure from a missing node and supports retry", async () => {
     vi.mocked(getNode).mockRejectedValueOnce(Object.assign(new Error("unavailable"), { status: 503 })).mockResolvedValue(node);
     vi.mocked(getNodeNeighbors).mockResolvedValue([]);
