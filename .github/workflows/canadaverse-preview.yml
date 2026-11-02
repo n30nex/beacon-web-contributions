@@ -25,6 +25,18 @@ jobs:
           VITE_CHANGELOG_URL: /beacon-dev/source.html
         run: |
           npm run build -- --base=/beacon-dev/
+          node --input-type=module <<'JS'
+          import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { brotliCompressSync, gzipSync, constants } from 'node:zlib';
+          for (const file of readdirSync('dist/assets')) {
+            if (!/\.(js|css)$/.test(file)) continue;
+            const path = join('dist/assets', file);
+            const data = readFileSync(path);
+            writeFileSync(path + '.gz', gzipSync(data, { level: 9 }));
+            writeFileSync(path + '.br', brotliCompressSync(data, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } }));
+          }
+          JS
           mkdir preview-output
           tar -cf preview-output/web-dist.tar -C dist .
           git archive --format=tar HEAD -o preview-output/web-source.tar
