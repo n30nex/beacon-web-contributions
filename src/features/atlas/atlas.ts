@@ -1,14 +1,18 @@
-import { ApiError, getNode, getNodeObservations, getNodesPage, isNotFound } from "../../api/client";
-import type { Node, NodeObservation, NodeSummary } from "../nodes/types";
+import { ApiError, getNode, getNodesPage, isNotFound } from "../../api/client";
+import type { Node, NodeActivity, NodeSummary, NodeObservation } from "../nodes/types";
 import type { Observer } from "../observers/types";
 
-export const ATLAS_KEY = "beacon-my-atlas-v2";
-export const ATLAS_LEGACY_KEY = "beacon-my-atlas-v1";
+export const ATLAS_KEY = "beacon-atlas-v2";
 export const ATLAS_LIMIT = 12;
-export const REPORT_LIMIT = 200;
 export type AtlasRange = "24h" | "3d";
-export interface NodePin { kind: "node"; id: string; publicKey: string; name: string; observerId?: string }
-export interface ObserverPin { kind: "observer"; observerId: string; name: string }
+// The metrics an Observer view tile can show. A pin stores its four only when they differ from the default.
+export const OBSERVER_TILES = ["airtime", "battery", "uptime", "types", "packets", "snr", "rssi", "noise", "queue", "errors"] as const;
+export type ObserverTile = (typeof OBSERVER_TILES)[number];
+export const DEFAULT_TILES: readonly ObserverTile[] = ["airtime", "battery", "types", "noise"];
+export type AtlasView = "analytics" | "heard" | "observer";
+// `view` is the tab the card opens on, stored only when it is not Analytics.
+export interface NodePin { kind: "node"; id: string; publicKey: string; name: string; observerId?: string; tiles?: ObserverTile[]; view?: AtlasView }
+export interface ObserverPin { kind: "observer"; observerId: string; name: string; tiles?: ObserverTile[] }
 export type AtlasPin = NodePin | ObserverPin;
 export interface SavedAtlas { version: 2; range: AtlasRange; pins: AtlasPin[] }
 
@@ -18,7 +22,7 @@ const isUuid = (value: unknown): value is string => typeof value === "string" &&
 
 export const pinKey = (pin: AtlasPin) => (pin.kind === "node" ? pin.publicKey : pin.observerId);
 
-// Version 1 stored `nodes`; version 2 stores `pins` with a kind. Both load, anything else is empty.
+// Keep existing preview version 1 cards readable while exporting the current version 2 format.
 export function parseAtlas(raw: string | null): SavedAtlas {
   const empty: SavedAtlas = { version: 2, range: "24h", pins: [] };
   try {
@@ -63,15 +67,46 @@ export function readAtlasFile(text: string): AtlasImport | null {
   return { atlas, skipped: value.pins.length - atlas.pins.length };
 }
 
-function toPin(raw: unknown, legacy: boolean): AtlasPin | null {
+// Four distinct known ids in slot order; undefined for anything else and for the default layout.
+function toTiles(raw: unknown): ObserverTile[] | undefined {
+  if (!Array.isArray(raw) || raw.length !== DEFAULT_TILES.length || new Set(raw).size !== raw.length) return undefined;
+  if (!raw.every((id): id is ObserverTile => OBSERVER_TILES.includes(id))) return undefined;
+  return raw.every((id, i) => id === DEFAULT_TILES[i]) ? undefined : [...raw];
+}
+
+export function withTiles<P extends AtlasPin>(pin: P, tiles: readonly ObserverTile[]): P {
+  const next = { ...pin };
+  const kept = toTiles(tiles);
+  if (kept) next.tiles = kept;
+  else delete next.tiles;
+  return next;
+}
+
+export function withView(pin: NodePin, view: AtlasView): NodePin {
+  const next = { ...pin };
+  if (view === "analytics") delete next.view;
+  else next.view = view;
+  return next;
+}
+
+// The tab a card opens on. A pinned Observer view waits for the observer link without being forgotten.
+export function homeView(pin: AtlasPin): AtlasView {
+  if (pin.kind === "observer") return "observer";
+  return pin.view === "observer" && !pin.observerId ? "analytics" : (pin.view ?? "analytics");
+}
+
+function toPin(raw: unknown, legacy = false): AtlasPin | null {
   if (!raw || typeof raw !== "object") return null;
   const value = raw as Record<string, unknown>;
   const name = typeof value.name === "string" ? value.name.slice(0, 160) : "";
   const kind = legacy ? "node" : value.kind;
-  if (kind === "observer") return isUuid(value.observerId) ? { kind, observerId: value.observerId, name } : null;
+  const tiles = toTiles(value.tiles);
+  if (kind === "observer") return isUuid(value.observerId) ? { kind, observerId: value.observerId, name, ...(tiles && { tiles }) } : null;
   if (kind !== "node" || !(isUuid(value.id) || value.id === "") || typeof value.publicKey !== "string" || !KEY.test(value.publicKey)) return null;
   const pin: NodePin = { kind, id: value.id, publicKey: value.publicKey.toLowerCase(), name };
   if (isUuid(value.observerId)) pin.observerId = value.observerId;
+  if (tiles) pin.tiles = tiles;
+  if (value.view === "heard" || value.view === "observer") pin.view = value.view;
   return pin;
 }
 
@@ -79,12 +114,12 @@ function toPin(raw: unknown, legacy: boolean): AtlasPin | null {
 export async function resolveObserverNode(observer: Observer, signal?: AbortSignal): Promise<NodeSummary | null> {
   const key = observer.publicKey?.toLowerCase();
   if (!key) return null;
-  const page = await getNodesPage(undefined, { pubkeyPrefix: key, limit: 2 }, signal);
+  const page = await getNodesPage(undefined, { pubkey: key, limit: 2 }, signal);
   return page.items.find((row) => row.publicKey.toLowerCase() === key) ?? null;
 }
 
 // Resolve by full identity after a server database reset; never adopt a different node at an old ID.
-export async function loadAtlasNode(pin: NodePin, signal?: AbortSignal) {
+export async function loadAtlasNode(pin: NodePin, signal?: AbortSignal): Promise<Node | null> {
   let node: Node | undefined;
   try {
     if (pin.id) node = await getNode(pin.id, signal);
@@ -92,21 +127,90 @@ export async function loadAtlasNode(pin: NodePin, signal?: AbortSignal) {
     if (!isNotFound(error)) throw error;
   }
   if (node?.publicKey.toLowerCase() !== pin.publicKey) {
-    const page = await getNodesPage(undefined, { pubkeyPrefix: pin.publicKey, limit: 2 }, signal);
+    const page = await getNodesPage(undefined, { pubkey: pin.publicKey, limit: 2 }, signal);
     const match = page.items.find(row => row.publicKey.toLowerCase() === pin.publicKey);
-    if (!match && !pin.id) return { node: undefined, page: { items: [], hasMore: false, nextCursor: null } };
+    if (!match && !pin.id) return null;
     if (!match) throw new ApiError(404, "not_found", "Atlas identity unavailable");
     node = await getNode(match.id, signal);
   }
   if (node.publicKey.toLowerCase() !== pin.publicKey) throw new Error("Atlas identity changed");
-  const page = await getNodeObservations(node.id, { limit: REPORT_LIMIT }, signal);
-  return { node, page };
+  return node;
 }
 
-const HOUR = 3_600_000;
+export const HOUR = 3_600_000;
 const RANGE_HOURS: Record<AtlasRange, number> = { "24h": 24, "3d": 72 };
+const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+
+// Slots count back from the tick, newest last. The tick can trail the clock by a minute, so a bucket
+// up to an hour past it lands in the newest slot; anything later is a bad clock and is dropped.
+export function hourSlots(range: AtlasRange, now: number) {
+  const hours = RANGE_HOURS[range];
+  const age = (t: number) => Math.max(0, Math.floor((now - t) / HOUR));
+  return {
+    hours,
+    bin: (t: number) => hours - 1 - age(t),
+    inWindow: (t: number) => Number.isFinite(t) && t < now + HOUR && age(t) < hours,
+    // Zero for an hour the server read, null for one it has not: no reply yet, or between the rollups and the raw tail.
+    counts: (read: { rolledUntil?: number; rawFrom?: number } | undefined) =>
+      Array.from({ length: hours }, (_, i): number | null => {
+        if (!read) return null;
+        const hour = Math.floor((now - (hours - 1 - i) * HOUR) / HOUR) * HOUR;
+        return read.rawFrom != null && hour < read.rawFrom && (read.rolledUntil == null || hour >= read.rolledUntil) ? null : 0;
+      }),
+  };
+}
 
 export interface AtlasSample {
+  since: number;
+  total: number | null;
+  partial: boolean;
+  counts: (number | null)[];
+  present: boolean[];
+  snrHourly: (number | null)[];
+  rssiHourly: (number | null)[];
+  snr: number | null;
+  rssi: number | null;
+  hops: number | null;
+  latest: NodeActivity["latest"];
+}
+
+// Totals and means are the server's (sum over samples); averaging the hourly means here would skew them.
+export function summarizeActivity(activity: NodeActivity | undefined, range: AtlasRange, now: number): AtlasSample {
+  const slots = hourSlots(range, now);
+  const counts = slots.counts(activity);
+  const snrHourly = Array<number | null>(slots.hours).fill(null);
+  const rssiHourly = Array<number | null>(slots.hours).fill(null);
+  for (const p of activity?.points ?? []) {
+    if (!slots.inWindow(p.t)) continue;
+    const i = slots.bin(p.t);
+    if (!finite(p.observations)) {
+      counts[i] = null;
+      continue;
+    }
+    counts[i] = (counts[i] ?? 0) + p.observations;
+    if (finite(p.snrAvg)) snrHourly[i] = p.snrAvg;
+    if (finite(p.rssiAvg)) rssiHourly[i] = p.rssiAvg;
+  }
+  const summary = activity?.summary;
+  const mean = (value: unknown) => (finite(value) ? value : null);
+  return {
+    since: Math.floor(now / HOUR) * HOUR - (slots.hours - 1) * HOUR,
+    total: mean(summary?.observations),
+    partial: activity !== undefined && counts.some((value) => value === null),
+    counts,
+    present: counts.map((count) => (count ?? 0) > 0),
+    snrHourly,
+    rssiHourly,
+    snr: mean(summary?.snrAvg),
+    rssi: mean(summary?.rssiAvg),
+    hops: mean(summary?.hopAvg),
+    latest: activity?.latest?.packetHash ? activity.latest : null,
+  };
+}
+
+// Node detail still needs a bounded raw sample for packet-type and receiving-region evidence.
+export const REPORT_LIMIT = 200;
+export interface NodeReportSample {
   reports: NodeObservation[];
   since: number;
   counts: number[];
@@ -121,10 +225,9 @@ export interface AtlasSample {
 
 // Zero RSSI with zero SNR is the server's "no measurement" sentinel, not a reading.
 const hasSignal = (row: NodeObservation) => !(row.rssi === 0 && row.snr === 0);
-const finite = (value: number | undefined): value is number => typeof value === "number" && Number.isFinite(value);
 const mean = (sum: number, n: number) => (n ? sum / n : null);
 
-export function summarizeReports(rows: NodeObservation[], range: AtlasRange, now: number, hasMore = false): AtlasSample {
+export function summarizeReports(rows: NodeObservation[], range: AtlasRange, now: number, hasMore = false): NodeReportSample {
   const windowSince = now - RANGE_HOURS[range] * HOUR;
   const seen = new Set<number>();
   const reports = rows

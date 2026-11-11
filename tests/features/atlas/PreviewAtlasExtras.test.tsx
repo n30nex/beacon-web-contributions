@@ -2,12 +2,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as api from "../../../src/api/client";
-import { MyAtlasPage } from "../../../src/features/atlas/MyAtlasPage";
+import { AtlasPage } from "../../../src/features/atlas/AtlasPage";
 import { PreviewAtlasExtras } from "../../../src/features/atlas/PreviewAtlasExtras";
-import { ATLAS_KEY } from "../../../src/features/atlas/atlas";
+import { ATLAS_KEY, loadAtlasNode } from "../../../src/features/atlas/atlas";
 import type { Node } from "../../../src/features/nodes/types";
 
-vi.mock("../../../src/api/client", async original => ({ ...(await original<typeof import("../../../src/api/client")>()), getNodeNeighbors: vi.fn(), getNodesPage: vi.fn(), getNode: vi.fn(), getNodeObservations: vi.fn(), getCollectedNodeTelemetry: vi.fn() }));
+vi.mock("../../../src/api/client", async original => ({ ...(await original<typeof import("../../../src/api/client")>()), getNodeNeighbors: vi.fn(), getNodesPage: vi.fn(), getNode: vi.fn(), getNodeObservations: vi.fn(), getNodeActivity: vi.fn(), getCollectedNodeTelemetry: vi.fn() }));
 const key = "ab".repeat(32);
 let client: QueryClient;
 beforeEach(() => {
@@ -19,12 +19,13 @@ beforeEach(() => {
 });
 afterEach(() => client.clear());
 it("retains collector links and battery cards before a node advertises", async () => {
-  window.history.replaceState({}, "", `/?tab=MyAtlas&atlasAdd=${key}`);
-  render(<QueryClientProvider client={client}><MyAtlasPage onViewNode={vi.fn()} onViewObserver={vi.fn()} onAnalyzePacket={vi.fn()} /></QueryClientProvider>);
+  window.history.replaceState({}, "", `/?tab=Atlas&atlasAdd=${key}`);
+  render(<QueryClientProvider client={client}><AtlasPage onViewNode={vi.fn()} onViewObserver={vi.fn()} onAnalyzePacket={vi.fn()} /></QueryClientProvider>);
   fireEvent.click(await screen.findByRole("button", { name: "Add repeater telemetry card" }));
   expect(await screen.findByText("4.15 V")).toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem(ATLAS_KEY)!).pins[0]).toEqual({ kind: "node", id: "", publicKey: key, name: "" });
-  expect(api.getNode).not.toHaveBeenCalled(); expect(api.getNodeObservations).not.toHaveBeenCalled();
+  expect(api.getNode).not.toHaveBeenCalled(); expect(api.getNodeObservations).not.toHaveBeenCalled(); expect(api.getNodeActivity).not.toHaveBeenCalled();
+  await expect(loadAtlasNode({ kind: "node", id: "", publicKey: key, name: "" })).resolves.toBeNull();
 });
 it("fetches neighbours only when their list is opened", async () => {
   const node = { id: "11111111-1111-4111-8111-111111111111", publicKey: key, knownNeighborCount: 0 } as Node;

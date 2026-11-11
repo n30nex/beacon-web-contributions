@@ -17,8 +17,8 @@ import { deriveObserverStatus } from "../observers/observer-status";
 import type { ObserverDirectoryItem } from "../observers/types";
 import { Card } from "../stats/cards";
 import { Segmented } from "../stats/Segmented";
-import { AtlasCard, type AtlasActions, type AtlasView } from "./AtlasCard";
-import { ATLAS_FILE_MAX_BYTES, ATLAS_LIMIT, atlasFile, atlasFileName, parseAtlas, pinKey, readAtlasFile, resolveObserverNode, type AtlasImport, type AtlasPin, type AtlasRange } from "./atlas";
+import { AtlasCard, type AtlasActions } from "./AtlasCard";
+import { ATLAS_FILE_MAX_BYTES, ATLAS_LIMIT, atlasFile, atlasFileName, homeView, parseAtlas, pinKey, readAtlasFile, resolveObserverNode, withTiles, withView, type AtlasImport, type AtlasPin, type AtlasRange, type AtlasView, type ObserverTile } from "./atlas";
 import { useCardDrag } from "./useCardDrag";
 import { useSavedAtlas } from "./useSavedAtlas";
 
@@ -43,7 +43,7 @@ type Matches =
   | { kind: "observer"; items: ObserverDirectoryItem[]; hasMore: boolean };
 
 // Global by design: pins are radio identities, so the header region picker does not apply here.
-export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { active?: boolean }) {
+export function AtlasPage({ active = true, ...actions }: AtlasActions & { active?: boolean }) {
   const { t } = useTranslation();
   const { saved, update, storageFailed } = useSavedAtlas();
   // Same single-row bar the other tabs use on a phone: the search shrinks, nothing wraps.
@@ -51,11 +51,10 @@ export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { acti
   const [linkedKey] = useState(() => { const key = new URLSearchParams(window.location.search).get("atlasAdd") ?? ""; return /^[a-f\d]{64}$/i.test(key) ? key.toLowerCase() : ""; });
   const [search, setSearch] = useState(linkedKey);
   const [field, setField] = useState(linkedKey ? "pubkey" : "name");
-  // One card at a time is away from its default view.
+  // One card at a time is away from the view it opens on.
   const [open, setOpen] = useState<{ key: string; view: AtlasView } | null>(null);
-  const defaultView = (pin: AtlasPin): AtlasView => (pin.kind === "observer" ? "observer" : "analytics");
-  const viewOf = (pin: AtlasPin) => (open?.key === pinKey(pin) ? open.view : defaultView(pin));
-  const setView = (pin: AtlasPin, view: AtlasView) => setOpen(view === defaultView(pin) ? null : { key: pinKey(pin), view });
+  const viewOf = (pin: AtlasPin) => (open?.key === pinKey(pin) ? open.view : homeView(pin));
+  const setView = (pin: AtlasPin, view: AtlasView) => setOpen(view === homeView(pin) ? null : { key: pinKey(pin), view });
   // Switching the field changes what the box means, so stale text must not carry over.
   const changeField = (value: string) => {
     setField(value);
@@ -116,18 +115,27 @@ export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { acti
     update((value) => ({ ...value, pins: value.pins.filter((other) => pinKey(other) !== pinKey(pin)) }));
   const relink = (pin: AtlasPin, id: string, observerId?: string) =>
     update((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) && other.kind === "node" ? { ...other, id, observerId } : other)) }));
-  // An observer pin whose key now resolves to a node takes that node's place in its own slot.
+  const retile = (pin: AtlasPin, tiles: readonly ObserverTile[]) =>
+    update((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) ? withTiles(other, tiles) : other)) }));
+  const pinView = (pin: AtlasPin, view: AtlasView) => {
+    update((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) && other.kind === "node" ? withView(other, view) : other)) }));
+    setOpen((current) => (current?.key === pinKey(pin) ? null : current));
+  };
+  // An observer pin whose key now resolves to a node takes that node's place in its own slot, and
+  // keeps opening on the Observer view it had.
   const upgrade = (pin: AtlasPin, match: NodeSummary, observerId: string) =>
     update((value) => {
       const publicKey = match.publicKey.toLowerCase();
-      // Already pinned as a node: that pin takes the observer link, as an Add from search does.
+      const tiles = value.pins.find((other) => pinKey(other) === pinKey(pin))?.tiles;
+      // Already pinned as a node: that pin takes the observer link, as an Add from search does, and
+      // the observer pin's tiles unless it has its own.
       if (value.pins.some((other) => other.kind === "node" && other.publicKey === publicKey)) {
         return { ...value, pins: value.pins
           .filter((other) => pinKey(other) !== pinKey(pin))
-          .map((other) => (other.kind === "node" && other.publicKey === publicKey ? { ...other, observerId } : other)) };
+          .map((other) => (other.kind === "node" && other.publicKey === publicKey ? { ...other, observerId, ...(!other.tiles && tiles && { tiles }) } : other)) };
       }
       return { ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin)
-        ? { kind: "node", id: match.id, publicKey, name: match.name || pin.name, observerId }
+        ? { kind: "node", id: match.id, publicKey, name: match.name || pin.name, observerId, ...(tiles && { tiles }), view: "observer" }
         : other)) };
     });
   const reorder = (from: number, to: number) =>
@@ -209,7 +217,7 @@ export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { acti
   const rowClass = "flex items-center justify-between gap-2 border-t border-border-subtle py-1.5 first:border-t-0";
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={t("tabs.MyAtlas")}>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={t("tabs.Atlas")}>
       <div
         className={`flex shrink-0 items-center gap-1.5 gap-y-1.5 border-b border-border-subtle bg-bg-base px-4 py-2 ${isMobile ? "" : "flex-wrap"}`}
         role="toolbar"
@@ -342,10 +350,13 @@ export function MyAtlasPage({ active = true, ...actions }: AtlasActions & { acti
                     range={saved.range}
                     active={active}
                     view={viewOf(pin)}
+                    home={homeView(pin)}
+                    onPinView={(view) => pinView(pin, view)}
                     onViewChange={(view) => setView(pin, view)}
                     onRemove={() => remove(pin)}
                     onResolved={(id, observerId) => relink(pin, id, observerId)}
                     onUpgrade={(match, observerId) => upgrade(pin, match, observerId)}
+                    onTilesChange={(tiles) => retile(pin, tiles)}
                     handle={drag.handleProps(index)}
                     {...actions}
                   />

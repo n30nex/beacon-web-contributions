@@ -26,10 +26,10 @@ export function PreviewAtlasExtras({ node, publicKey, active, sample, updatedAt,
     {sample && <details className="text-xs">
       <summary className="min-h-7 cursor-pointer content-center text-text-normal">{t("atlas.statistics")}</summary>
       <p>{t("atlas.definition")}</p><p>{t("atlas.signalDefinition")}</p>
-      {sample.truncated && <p className="text-warn">{t("atlas.capped")}</p>}
+      {sample.partial && <p className="text-warn">{t("atlas.observerPartialCoverage")}</p>}
       <dl className="grid grid-cols-2 gap-2"><dt>{t("atlas.hops")}</dt><dd>{sample.hops ?? "—"}</dd><dt>{t("atlas.radio")}</dt><dd>{node.radio || "—"}</dd><dt>{t("atlas.scope")}</dt><dd>{node.defaultScope || "—"}</dd></dl>
       <p className="break-all font-mono text-[10px]">{node.publicKey}</p>
-      <details><summary className="min-h-7 cursor-pointer content-center">{t("atlas.chartValues")}</summary><div className="max-h-40 overflow-auto"><table className="w-full"><thead><tr><th>{t("atlas.hour")}</th><th>{t("atlas.reports")}</th></tr></thead><tbody>{sample.counts.map((count, i) => <tr key={i}><td>{new Date(sample.since + i * 3_600_000).toLocaleString(i18n.language)}</td><td className="text-right">{count}</td></tr>)}</tbody></table></div></details>
+      <details><summary className="min-h-7 cursor-pointer content-center">{t("atlas.chartValues")}</summary><div className="max-h-40 overflow-auto"><table className="w-full"><thead><tr><th>{t("atlas.hour")}</th><th>{t("atlas.reports")}</th></tr></thead><tbody>{sample.counts.map((count, i) => <tr key={i}><td>{new Date(sample.since + i * 3_600_000).toLocaleString(i18n.language)}</td><td className="text-right">{count ?? "—"}</td></tr>)}</tbody></table></div></details>
       {updatedAt != null && <p>{t("atlas.updated")} <Timestamp value={updatedAt} /></p>}
     </details>}
   </div>;

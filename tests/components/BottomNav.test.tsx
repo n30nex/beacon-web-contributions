@@ -8,18 +8,18 @@ describe("BottomNav", () => {
     render(<BottomNav activeTab="Topology" onTabChange={() => {}} />);
     fireEvent.click(screen.getByText("More"));
     expect(screen.getAllByRole("menuitem").map(item => item.textContent)).toEqual([
-      "Observers", "Topology", "Routes", "Traces", "My Atlas", "Analytics",
+      "Observers", "Topology", "Routes", "Traces", "Atlas", "Analytics",
     ]);
   });
-  it("keeps Nodes primary and puts My Atlas in More, with its identifier intact in French", async () => {
+  it("keeps Nodes primary and puts Atlas in More, with its identifier intact in French", async () => {
     const onTabChange = vi.fn();
-    render(<BottomNav activeTab="MyAtlas" onTabChange={onTabChange} />);
+    render(<BottomNav activeTab="Atlas" onTabChange={onTabChange} />);
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Packets", "Channels", "Map", "Nodes"]);
     expect(screen.getByText("More").closest("button")!.className).toContain("text-primary");
     await act(() => i18n.changeLanguage("fr"));
     fireEvent.click(screen.getByText("Plus"));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Mon Atlas" }));
-    expect(onTabChange).toHaveBeenCalledWith("MyAtlas");
+    fireEvent.click(screen.getByRole("menuitem", { name: "Atlas" }));
+    expect(onTabChange).toHaveBeenCalledWith("Atlas");
   });
   it("translates an open More sheet without changing the selected tab identifier", async () => {
     const onTabChange = vi.fn();

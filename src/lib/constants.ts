@@ -34,7 +34,7 @@ export const RATE_LIMIT_MAX_MS = 300_000;
 export const TRANSIENT_WAIT_MAX_MS = 30_000;
 
 // app tab names, in display order; the ?tab URL param is validated against this list
-export const TABS = ["Packets", "Channels", "Map", "Nodes", "Observers", "Topology", "Routes", "Traces", "MyAtlas", "Analytics"] as const;
+export const TABS = ["Packets", "Channels", "Map", "Nodes", "Observers", "Topology", "Routes", "Traces", "Atlas", "Analytics"] as const;
 
 // Per-deployment config: read via runtimeEnv, so the Docker image's runtime config (written at
 // container start, see .build/) overrides the VITE_* build-time env.
@@ -46,7 +46,7 @@ export function parseEnvList(raw: string | undefined): string[] {
 
 // Tabs left after removing the disabled ones (case-insensitive), keeping display order.
 export function filterEnabledTabs(tabs: readonly string[], disabledRaw: string | undefined): string[] {
-  const disabled = new Set(parseEnvList(disabledRaw).map((t) => t.toLowerCase()));
+  const disabled = new Set(parseEnvList(disabledRaw).map((t) => t.toLowerCase() === "myatlas" ? "atlas" : t.toLowerCase()));
   return tabs.filter((t) => !disabled.has(t.toLowerCase()));
 }
 

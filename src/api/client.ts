@@ -5,7 +5,7 @@ import { parseTelemetryAvailability } from "../features/nodes/telemetry-availabi
 import type { CursorPage, PacketSummary, PacketDetail, IataCode, RegionSummary, Region, BrokerStatus, RouteEvidence, KnownRoute, CrossIATARoute, TraceTagSummary, TraceType, TraceDetail } from "../types/api";
 import type { ChannelPage, ChannelMessage } from "../features/channels/types";
 import type { ObserverSummary, Observer, AdvertObservation, ObserverDirectoryPage, ObserverDirectorySort } from "../features/observers/types";
-import type { Node, NodeScopeEvidence, NodeObservation, NodeNeighbor, NodePage, NodeSort } from "../features/nodes/types";
+import type { Node, NodeActivity, NodeScopeEvidence, NodeObservation, NodeNeighbor, NodePage, NodeSort } from "../features/nodes/types";
 import type {
   StatsSeries,
   SignalStats,
@@ -351,6 +351,7 @@ export function getNodesPage(
     type?: string;
     name?: string;
     pubkeyPrefix?: string; // case-insensitive hex prefix; server matches and validates
+    pubkey?: string; // exact 64-hex key; an indexed lookup, unlike the prefix scan
     supportsMultibytePaths?: "true" | "false";
     supportsMultibyteTraces?: "true" | "false";
     neighbors?: boolean; scopeEvidence?: boolean; // include each node's neighborIds (?neighbors=true)
@@ -370,6 +371,7 @@ export function getNodesPage(
     typeName: params?.type,
     name: params?.name,
     pubkeyPrefix: params?.pubkeyPrefix,
+    pubkey: params?.pubkey,
     supportsMultibytePaths: params?.supportsMultibytePaths,
     supportsMultibyteTraces: params?.supportsMultibyteTraces,
     neighbors: params?.neighbors ? "true" : undefined,
@@ -441,6 +443,10 @@ export function getNodeObservations(
     cursor: params?.cursor,
     limit: params?.limit ?? DEFAULT_PAGE_SIZE,
   }, signal);
+}
+
+export function getNodeActivity(nodeId: string, range: string, signal?: AbortSignal): Promise<NodeActivity> {
+  return request(`/nodes/${nodeId}/activity`, { range }, signal);
 }
 
 export function getNodeNeighbors(nodeId: string): Promise<NodeNeighbor[]> {

@@ -40,8 +40,9 @@ export function StatCard({
   sublabel,
   compact,
   interpolateGaps,
+  visual,
 }: {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   accent: string; // CSS color for the sparkline, e.g. "var(--color-primary)"
   spark?: (number | null)[];
@@ -50,6 +51,7 @@ export function StatCard({
   sublabel?: ReactNode;
   compact?: boolean;
   interpolateGaps?: boolean;
+  visual?: ReactNode; // replaces the sparkline; keep it near the sparkline's height
 }) {
   return (
     <div className="flex flex-col rounded-lg border border-border bg-bg-surface px-3.5 py-3">
@@ -58,7 +60,9 @@ export function StatCard({
         {sublabel && <span className="min-w-0 max-w-full truncate font-mono text-[9px] text-text-dim">{sublabel}</span>}
       </div>
       <div className={`mt-0.5 font-mono text-xl font-bold tabular-nums text-text-bright ${compact ? "" : "sm:text-2xl"}`}>{value}</div>
-      <div className="mt-auto">{presence ? <PresenceStrip hours={presence} color={accent} /> : spark ? <Sparkline values={spark} color={accent} markPeak={markPeak} interpolateGaps={interpolateGaps} /> : <div className="mt-1.5 h-[20px]" />}</div>
+      <div className="mt-auto">
+        {visual ?? (presence ? <PresenceStrip hours={presence} color={accent} /> : spark ? <Sparkline values={spark} color={accent} markPeak={markPeak} interpolateGaps={interpolateGaps} /> : <div className="mt-1.5 h-[20px]" />)}
+      </div>
     </div>
   );
 }

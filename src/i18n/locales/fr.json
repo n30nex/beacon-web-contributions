@@ -14,8 +14,8 @@
       "Routes": "Routes",
       "Traces": "Traces",
       "Analytics": "Analyses",
-      "MyAtlas": "Mon Atlas",
-      "Topology": "Topologie"
+      "Topology": "Topologie",
+      "Atlas": "Atlas"
     },
     "navigation": {
       "primary": "Navigation principale",
@@ -1069,7 +1069,7 @@
       "observers_other": "{{count}} observateurs ont entendu le dernier paquet",
       "openAdvert": "Ouvrir le paquet et les chemins observés",
       "statistics": "Statistiques et valeurs du graphique",
-      "definition": "Chaque réception correspond à un paquet provenant de cette clé de nœud complète, après déduplication par le serveur. Il s’agit d’un échantillon, pas du trafic total du nœud. Les barres vides indiquent l’absence de réceptions chargées ; l’historique brut plus ancien peut avoir expiré.",
+      "definition": "Observations enregistrées des paquets de ce nœud par heure sur la période choisie, à partir des agrégats horaires et des rapports récents. La couverture manquante reste inconnue; une valeur absente ne signifie pas un trafic nul.",
       "signalDefinition": "Les indicateurs font la moyenne des mesures disponibles du dernier saut aux observateurs récepteurs. Ils ne mesurent pas l’état de la radio du nœud d’origine. Les barres horaires couvrent une période glissante se terminant maintenant.",
       "capped": "D’autres réceptions existent au-delà de celles chargées. Les nombres et moyennes portent uniquement sur l’échantillon chargé.",
       "hops": "Sauts moyens",
@@ -1106,7 +1106,7 @@
       "saved": "Enregistré",
       "savedName": "{{name}} est enregistré",
       "sampleCapped": "{{limit}} dernières",
-      "sampleHelp": "{{limit}} dernières observations conservées de paquets provenant de ce nœud, par heure. Le signal est mesuré par les observateurs sur le dernier saut.",
+      "sampleHelp": "Observations conservées de paquets provenant de ce nœud, par heure sur la période choisie, avec le signal mesuré par les observateurs sur le dernier saut.",
       "cappedHelp": "Il existe plus d’observations que cette fiche n’en charge ; les barres commencent à la plus ancienne chargée.",
       "lastSeen": "Vu pour la dernière fois",
       "meanHops": "Sauts moyens",
@@ -1126,7 +1126,7 @@
       "online": "En ligne",
       "offline": "Hors ligne",
       "lastStatus": "Dernier état",
-      "observerHelp": "Ce que cet observateur a reçu et signalé sur la période choisie. Les états sans mesures sont ignorés. Les lignes pleines indiquent les mesures; les pointillés relient les heures manquantes à titre indicatif. Les interruptions de disponibilité restent visibles.",
+      "observerHelp": "Ce que cet observateur a reçu et signalé sur la période choisie. Les états sans mesures sont ignorés. Le temps radio est la part de la période passée à émettre et à recevoir, selon les compteurs de la radio ; sans ces compteurs, il est estimé d’après les paquets reçus (réception seulement). Les lignes pleines indiquent les mesures; les pointillés relient les heures manquantes à titre indicatif. Les interruptions de disponibilité restent visibles.",
       "observerUnsupported": "Ce serveur ne fournit pas l’activité ni la télémétrie des observateurs.",
       "observerGone": "Cet observateur n’est plus connu du serveur.",
       "dragToReorder": "Glisser pour réordonner, ou utiliser les flèches",
@@ -1147,7 +1147,17 @@
       "importSkipped_one": "{{count}} entrée ignorée (doublon, invalide ou au-delà de la limite).",
       "importSkipped_many": "{{count}} entrées ignorées (doublons, invalides ou au-delà de la limite).",
       "importSkipped_other": "{{count}} entrées ignorées (doublons, invalides ou au-delà de la limite).",
-      "importInvalid": "Ce fichier n’est pas un export Beacon Atlas, ou ne contient aucune fiche importable."
+      "importInvalid": "Ce fichier n’est pas un export Beacon Atlas, ou ne contient aucune fiche importable.",
+      "activityUnsupported": "Ce serveur ne fournit pas l’activité des nœuds.",
+      "airtime": "Temps radio",
+      "airtimeHeard": "RX, d’après les paquets reçus",
+      "packetTypes": "Types de paquets",
+      "otherTypes": "autres",
+      "changeTile": "Changer la tuile : {{name}}",
+      "resetTiles": "Réinitialiser les tuiles",
+      "pinView": "Ouvrir sur cet onglet",
+      "pinViewHelp": "Faire de cet onglet celui sur lequel la fiche s’ouvre",
+      "viewPinned": "La fiche s’ouvre sur cet onglet"
     },
     "topology": {
       "publicChatter": "Messages Public",

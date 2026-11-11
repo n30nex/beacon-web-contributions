@@ -38,11 +38,10 @@ import { asStatsRange, asStatsTab } from "./features/stats/stats-url";
 import { useStatsRegion } from "./features/stats/useStats";
 import type { PacketDetail } from "./types/api";
 
-// Map is the only heavy tab (maplibre-gl is ~1MB), so lazy-load it — its chunk is fetched the
-// first time someone opens the Map tab instead of bloating the initial bundle.
+// Lazy-load the heavy pages so their chunks are fetched on first visit.
 const NodePage = lazy(() => import("./features/nodes/NodePage").then(m => ({ default: m.NodePage })));
-const MyAtlasPage = lazy(() => import("./features/atlas/MyAtlasPage").then(m => ({ default: m.MyAtlasPage })));
 const TopologyPage = lazy(() => import("./features/topology/TopologyPage").then(m => ({ default: m.TopologyPage })));
+const AtlasPage = lazy(() => import("./features/atlas/AtlasPage").then(m => ({ default: m.AtlasPage })));
 const MapView = lazy(() => import("./features/map/MapView").then((m) => ({ default: m.MapView })));
 
 // Stats pulls in ECharts (~150-200KB gz), so lazy-load it too — the chunk loads on first visit to Stats.
@@ -208,7 +207,7 @@ function AppInner() {
   // The URL is the single source of truth for the active tab — back/forward just work, and an
   // unknown ?tab value falls back to Packets instead of rendering a blank pane.
   // "Stats" was renamed to "Analytics"; keep old ?tab=Stats links working.
-  const tabParam = searchParams.get("tab") === "Stats" ? "Analytics" : searchParams.get("tab");
+  const tabParam = searchParams.get("tab") === "Stats" ? "Analytics" : searchParams.get("tab") === "MyAtlas" ? "Atlas" : searchParams.get("tab");
   const activeTab = ENABLED_TABS.includes(tabParam ?? "") ? (tabParam as string) : (ENABLED_TABS.includes("Packets") ? "Packets" : ENABLED_TABS[0] ?? "Packets");
   // Resolve the starting selection once from URL → storage → legacy key (see computeInitialSelection).
   const [initialSelection] = useState(() => computeInitialSelection(searchParams));
@@ -355,7 +354,7 @@ function AppInner() {
   usePauseWhenHidden(wsManager);
 
   const tabContent: Record<string, React.ReactNode> = {
-    MyAtlas: <MyAtlasPage onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
+    Atlas: <AtlasPage onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
     Topology: <TopologyPage wsManager={wsManager} onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
     Packets: (
       <PacketList
