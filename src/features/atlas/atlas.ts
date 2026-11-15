@@ -20,6 +20,9 @@ const UUID = /^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i;
 const KEY = /^[\da-f]{64}$/i;
 const isUuid = (value: unknown): value is string => typeof value === "string" && UUID.test(value);
 
+// Stands in for the server id of a node the server no longer knows. It is a valid UUID that no node has.
+export const NO_NODE_ID = "00000000-0000-0000-0000-000000000000";
+
 export const pinKey = (pin: AtlasPin) => (pin.kind === "node" ? pin.publicKey : pin.observerId);
 
 // Keep existing preview version 1 cards readable while exporting the current version 2 format.
@@ -122,7 +125,7 @@ export async function resolveObserverNode(observer: Observer, signal?: AbortSign
 export async function loadAtlasNode(pin: NodePin, signal?: AbortSignal): Promise<Node | null> {
   let node: Node | undefined;
   try {
-    if (pin.id) node = await getNode(pin.id, signal);
+    if (pin.id && pin.id !== NO_NODE_ID) node = await getNode(pin.id, signal);
   } catch (error) {
     if (!isNotFound(error)) throw error;
   }

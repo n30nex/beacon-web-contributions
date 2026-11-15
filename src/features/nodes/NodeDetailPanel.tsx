@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { getNode, getNodeObservations, getNodeNeighbors } from "../../api/client";
@@ -17,6 +18,13 @@ import { NodeScopes } from "./NodeScopes";
 import { CollectedNodeTelemetry } from "./CollectedNodeTelemetry";
 import { Tooltip } from "../../components/Tooltip";
 import { EmojiText } from "../../components/EmojiText";
+import { useFeatures } from "../../hooks/useFeatures";
+import { useRequestsAvailable } from "../../hooks/useTelemetryRequests";
+import { RequestTelemetry } from "./RequestTelemetry";
+
+// Pulls in ECharts, so it stays out of the main bundle; mounted only for polled node types.
+import { isPolledNodeType } from "./polledType";
+const NodeTelemetrySection = lazy(() => import("./NodeTelemetrySection"));
 
 function NodeNeighborRow({ neighbor, onClick }: { neighbor: NodeNeighbor; onClick?: () => void }) {
   const { t } = useTranslation();
@@ -112,6 +120,11 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
   const fullLink = new URL(window.location.href);
   fullLink.searchParams.set("tab", "Nodes"); fullLink.searchParams.set("nodePage", nodeId);
   for (const key of ["node", "hash", "analyze", "path", "observation"]) fullLink.searchParams.delete(key);
+  const features = useFeatures();
+  const showTelemetry = features.polling && !!node && isPolledNodeType(node.nodeTypeName);
+  const canRequest = useRequestsAvailable();
+  // Handed to the lazy chart section so it sits inside it, without that chunk importing it.
+  const requestBlock = canRequest && !!node && isPolledNodeType(node.nodeTypeName) ? <RequestTelemetry key={node.id} node={node} /> : null;
 
   return (
     <DetailPanel
@@ -182,6 +195,12 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
             <NodeScopes node={node} />
             {node.meshmapper && <MeshMapperSection mm={node.meshmapper} />}
             {node.nodeType === 2 && <CollectedNodeTelemetry publicKey={node.publicKey} active />}
+
+            {showTelemetry ? (
+              <Suspense fallback={null}>
+                <NodeTelemetrySection key={node.id} node={node} onViewObserver={onViewObserver} extra={requestBlock} />
+              </Suspense>
+            ) : requestBlock && <Section title={t("nodeDetail.telemetry.title")}>{requestBlock}</Section>}
 
             <Section title={t("nodeDetail.capabilities")}>
               <div className="flex flex-col gap-0.5 font-mono text-[13px]">
