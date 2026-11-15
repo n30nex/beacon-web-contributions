@@ -7,9 +7,10 @@ import { FormButton } from "../../components/form/FormButton";
 import { FormStatus } from "../../components/form/FormStatus";
 import { PasswordField } from "../../components/form/PasswordField";
 import { TextField } from "../../components/form/TextField";
-import { AccountLayout, LinkButton } from "./AccountLayout";
+import { AccountLayout, Divider, QuietLine } from "./AccountLayout";
+import { CheckEmail } from "./CheckEmail";
 import { authErrorText, errorCode } from "./errors";
-import { newPasswordOk } from "./passwordRule";
+import { newPasswordOk, passwordTooLong } from "./passwordRule";
 import { useView } from "./useView";
 
 type Field = "username" | "email" | "password";
@@ -38,29 +39,28 @@ export function RegisterView() {
     onSuccess: () => setPassword(""),
   });
 
-  const toSignIn = <LinkButton onClick={() => open("signin")}>{t("account.register.haveAccount")}</LinkButton>;
+  const toSignIn = <QuietLine text={t("account.register.havePrompt")} action={t("account.register.signInLink")} onAction={() => open("signin")} />;
 
   if (!features.registration) {
     return (
-      <AccountLayout title={t("account.register.title")} links={toSignIn}>
+      <AccountLayout title={t("account.register.title")}>
         <FormStatus>{t("account.register.closed")}</FormStatus>
+        <Divider />
+        {toSignIn}
       </AccountLayout>
     );
   }
   if (submit.isSuccess) {
-    return (
-      <AccountLayout title={t("account.checkEmail.title")} links={toSignIn}>
-        <FormStatus>{t("account.register.sent")}</FormStatus>
-      </AccountLayout>
-    );
+    return <CheckEmail email={email.trim()} kind="verify" onDifferent={submit.reset} onSignIn={() => open("signin")} />;
   }
 
+  const tooLong = passwordTooLong(password);
   const failedField = submit.isError ? fieldFor(submit.error) : null;
   const message = submit.isError ? authErrorText(t, submit.error) : undefined;
   const fieldError = (f: Field) => (failedField === f ? message : undefined);
 
   return (
-    <AccountLayout title={t("account.register.title")} links={toSignIn}>
+    <AccountLayout title={t("account.register.title")}>
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
@@ -68,12 +68,13 @@ export function RegisterView() {
           submit.mutate();
         }}
       >
-        <TextField label={t("account.fields.username")} name="username" autoComplete="username" value={username} onChange={setUsername} error={fieldError("username")} hint={t("account.register.usernameHint")} disabled={submit.isPending} />
-        <TextField label={t("account.fields.email")} name="email" type="email" autoComplete="email" value={email} onChange={setEmail} error={fieldError("email")} disabled={submit.isPending} />
-        <PasswordField label={t("account.fields.password")} name="password" autoComplete="new-password" value={password} onChange={setPassword} error={fieldError("password")} hint={t("account.register.passwordHint")} disabled={submit.isPending} />
-        <FormButton busy={submit.isPending} busyLabel={t("account.register.submitting")} disabled={!username.trim() || !email.trim() || !newPasswordOk(password)}>{t("account.register.submit")}</FormButton>
+        <TextField roomy label={t("account.fields.username")} name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} enterKeyHint="next" value={username} onChange={setUsername} error={fieldError("username")} hint={t("account.register.usernameHint")} disabled={submit.isPending} />
+        <TextField roomy label={t("account.fields.email")} name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} enterKeyHint="next" value={email} onChange={setEmail} error={fieldError("email")} disabled={submit.isPending} />
+        <PasswordField roomy label={t("account.fields.password")} name="password" autoComplete="new-password" enterKeyHint="go" value={password} onChange={setPassword} error={tooLong ? t("account.errors.passwordTooLong") : fieldError("password")} hint={tooLong ? undefined : t("account.register.passwordHint")} disabled={submit.isPending} />
         {submit.isError && !failedField && <FormStatus kind="error">{message}</FormStatus>}
+        <FormButton variant="solid" size="lg" busy={submit.isPending} busyLabel={t("account.register.submitting")} disabled={!username.trim() || !email.trim() || !newPasswordOk(password)}>{t("account.register.submit")}</FormButton>
       </form>
+      {toSignIn}
     </AccountLayout>
   );
 }

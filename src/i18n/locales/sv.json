@@ -70,7 +70,9 @@
       "noMatches": "Inga träffar",
       "filterPlaceholder": "Filtrera...",
       "showPassword": "Visa lösenord",
-      "hidePassword": "Dölj lösenord"
+      "hidePassword": "Dölj lösenord",
+      "show": "Visa",
+      "hide": "Dölj"
     },
     "mesh": {
       "totalPackets": "Totalt antal paket",
@@ -1130,24 +1132,39 @@
         "submit": "Logga in",
         "submitting": "Loggar in…",
         "register": "Skapa ett konto",
-        "forgot": "Glömt lösenordet"
+        "forgot": "Glömt lösenordet?",
+        "description": {
+          "atlas": "Synkronisera din Atlas.",
+          "telemetry": "Synkronisera din Atlas och begär telemetri från repeatrar.",
+          "alerts": "Synkronisera din Atlas och få aviseringar.",
+          "all": "Synkronisera din Atlas, begär telemetri från repeatrar och få aviseringar."
+        }
       },
       "resend": {
         "button": "Skicka länken igen",
         "sent": "Kolla din e-post. Om adressen kan användas är en ny länk på väg."
       },
       "checkEmail": {
-        "title": "Kolla din e-post"
+        "title": "Kolla din e-post",
+        "verifySent": "Om {{email}} kan användas är en bekräftelselänk på väg. Det kan ta en minut. Kolla skräpposten också.",
+        "resetSent": "Om {{email}} har ett konto är en återställningslänk på väg. Det kan ta en minut. Kolla skräpposten också.",
+        "resend": "Skicka igen",
+        "resendIn": "Skicka igen om {{seconds}} s",
+        "resent": "Skickat igen.",
+        "different": "Använd en annan e-postadress",
+        "signIn": "Logga in"
       },
       "register": {
         "title": "Skapa ett konto",
         "submit": "Skapa konto",
         "submitting": "Skapar…",
         "usernameHint": "3 till 30 bokstäver, siffror, punkter, bindestreck eller understreck.",
-        "passwordHint": "Minst 12 tecken, högst 128 byte.",
+        "passwordHint": "Minst 12 tecken.",
         "haveAccount": "Har du redan ett konto? Logga in",
         "closed": "Registreringen är stängd på den här servern.",
-        "sent": "Om adressen kan användas är en bekräftelselänk på väg. Följ den för att slutföra kontot."
+        "sent": "Om adressen kan användas är en bekräftelselänk på väg. Följ den för att slutföra kontot.",
+        "havePrompt": "Har du redan ett konto?",
+        "signInLink": "Logga in"
       },
       "verify": {
         "title": "Verifiera din e-post",
@@ -1168,7 +1185,8 @@
         "done": "Ditt lösenord är ändrat. Du kan logga in med det nu.",
         "signIn": "Logga in",
         "newLink": "Begär en ny länk",
-        "toSignIn": "Tillbaka till inloggning"
+        "toSignIn": "Tillbaka till inloggning",
+        "setIntro": "Välj ett nytt lösenord för ditt konto."
       },
       "bridge": {
         "title": "Logga in i Beacon-appen",
@@ -1202,7 +1220,8 @@
         "accounts_disabled": "Konton är inte aktiverade på den här servern.",
         "service_unavailable": "Servern är upptagen. Försök igen om en stund.",
         "read_only": "Servern är skrivskyddad just nu. Försök igen senare.",
-        "portal_managed": "Din inloggning hanteras i MeshMapper-portalen. Använd den där."
+        "portal_managed": "Din inloggning hanteras i MeshMapper-portalen. Använd den där.",
+        "passwordTooLong": "Lösenordet är för långt."
       },
       "profile": {
         "title": "Profil",
