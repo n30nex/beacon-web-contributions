@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'n30nex/beacon-web-contributions'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

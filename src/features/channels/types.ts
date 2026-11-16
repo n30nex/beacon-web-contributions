@@ -26,7 +26,6 @@ export function channelDisplayName(ch: ChannelSummary): string {
 }
 
 export interface ChannelMessage {
-  isPublic?: boolean; // Confirmed default Public decryption key, never inferred from the hash.
   id: number;
   packetHash: string;
   channelHash: string;

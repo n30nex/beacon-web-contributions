@@ -15,7 +15,6 @@ import { useIsMobile } from "../hooks/useMediaQuery";
 import { BeaconWordmark } from "./BeaconWordmark";
 import { getIatas } from "../api/client";
 import { ENABLED_TABS, ENABLED_THEME_IDS, selectableThemes, APP_NAME, GITHUB_URL, BANNER } from "../lib/constants";
-import { runtimeEnv } from "../lib/runtime-env";
 import { InstanceBanner } from "./InstanceBanner";
 import { AccountEntry, AccountMenuItems } from "../features/account/AccountMenu";
 import type { WsManager } from "../api/ws-manager";
@@ -41,18 +40,28 @@ function LiveBadge({ wsManager, compact = false }: { wsManager: WsManager; compa
   if (status === "connected") {
     if (compact) return (
       <span role="status" aria-label={t("connection.live")} title={t("connection.live")} className="flex h-6 w-6 items-center justify-center">
-        <span className="h-2 w-2 rounded-full bg-green animate-pulse beacon-live-dot" />
+        <span className="h-2 w-2 rounded-full bg-green animate-pulse" />
       </span>
     );
     return (
       <div className="flex items-center gap-1.5 font-mono text-[11px] text-green bg-green/8 border border-green/15 px-2 py-0.5 rounded-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse beacon-live-dot" />
+        <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
         {t("connection.live")}
       </div>
     );
   }
 
   if (status === "connecting") {
+    // On a phone the word gives way to a dot and the age, so the instance name keeps its room.
+    if (compact) {
+      const full = t("connection.stale", { age: staleStr });
+      return (
+        <div role="status" aria-label={full} title={full} className="flex items-center gap-1 font-mono text-[11px] text-warn bg-warn/7 border border-warn/15 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-warn" />
+          <span aria-hidden>{staleStr}</span>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-1.5 font-mono text-[11px] text-warn bg-warn/7 border border-warn/15 px-2 py-0.5 rounded-sm">
         {t("connection.stale", { age: staleStr })}
@@ -134,11 +143,11 @@ function RegionSelector() {
       renderTrigger={({ toggle }) => (
         <button
           type="button"
-          className="flex min-w-0 max-w-full items-center gap-1.5 bg-bg-raised border border-border rounded px-3 py-1 text-text-bright font-mono text-xs font-semibold hover:border-text-dim/30 transition-colors"
+          className="flex items-center gap-1.5 bg-bg-raised border border-border rounded px-3 py-1 text-text-bright font-mono text-xs font-semibold hover:border-text-dim/30 transition-colors"
           onClick={toggle}
         >
-          <span className="sr-only text-text-muted font-normal text-[11px] uppercase sm:not-sr-only sm:shrink-0">{t("region.label")}</span>
-          <span className="min-w-0 truncate">{regionSummaryLabel(selection, t)}</span>
+          <span className="text-text-muted font-normal text-[11px] uppercase">{t("region.label")}</span>
+          {regionSummaryLabel(selection, t)}
           <span className="text-text-dim text-[11px]">▾</span>
         </button>
       )}
@@ -382,19 +391,6 @@ function GitHubLink() {
   );
 }
 
-function ChangelogLink({ compact = false }: { compact?: boolean }) {
-  const { t } = useTranslation();
-  const href = runtimeEnv("VITE_CHANGELOG_URL", import.meta.env.VITE_CHANGELOG_URL)?.trim();
-  if (!href) return null;
-  try {
-    if (!["http:", "https:"].includes(new URL(href, window.location.href).protocol)) return null;
-  } catch { return null; }
-  return <a href={href} target="_blank" rel="noopener noreferrer" aria-label={t("header.changelog")} title={t("header.changelog")}
-    className={`flex shrink-0 items-center justify-center rounded border border-border bg-bg-raised text-text-muted hover:text-text-bright ${compact ? "h-7 w-7" : "min-h-7 px-2 font-mono text-[11px]"}`}>
-    {compact ? <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true"><path d="M3 1.5h7l3 3v10H3zM10 1.5v3h3M5 7h6M5 9.5h6M5 12h4" /></svg> : t("header.changelog")}
-  </a>;
-}
-
 const MENU_GROUP = "px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wide text-text-dim";
 
 // Phones fold theme, language and the repo link into one menu so the header stays a single row.
@@ -451,13 +447,12 @@ export function AppShell({ activeTab, onTabChange, wsManager, children }: AppShe
       <InstanceBanner text={BANNER} />
       {isMobile ? (
         <header className="flex items-center gap-2 px-3 py-1.5 min-h-[42px] bg-bg-surface border-b border-border shrink-0">
-          <BeaconWordmark iconSize={20} textClassName="text-sm" className="shrink-0" />
-          <div className="min-w-0">
+          <BeaconWordmark iconSize={20} textClassName="text-sm" className="min-w-0" />
+          <div className="shrink-0">
             <RegionSelector />
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <RateLimitBadge />
-            <ChangelogLink compact />
             <LiveBadge wsManager={wsManager} compact />
             <SettingsMenu />
           </div>
@@ -473,7 +468,6 @@ export function AppShell({ activeTab, onTabChange, wsManager, children }: AppShe
           <div className="flex items-center gap-3">
             <LiveBadge wsManager={wsManager} />
             <RateLimitBadge />
-            <ChangelogLink />
             <GitHubLink />
           </div>
           <AccountEntry />

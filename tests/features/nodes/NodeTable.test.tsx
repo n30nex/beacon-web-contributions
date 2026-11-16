@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, render, screen, within, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NodeTable } from "../../../src/features/nodes/NodeTable";
-import { getNodesPage, getTelemetryAvailability } from "../../../src/api/client";
+import { getNodesPage } from "../../../src/api/client";
 import i18n from "../../../src/i18n";
 import type { NodePage, NodeSummary } from "../../../src/features/nodes/types";
 import type { WsManager } from "../../../src/api/ws-manager";
@@ -13,7 +13,7 @@ const region = { iatas: ["YVR"], regionKey: "YVR", isResolved: true };
 vi.mock("../../../src/hooks/useRegion", () => ({ useRegion: () => region }));
 let scopes: string[] = [];
 vi.mock("../../../src/hooks/useScopes", () => ({ useScopes: () => scopes }));
-vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn(), getTelemetryAvailability: vi.fn() }));
+vi.mock("../../../src/api/client", () => ({ getNodesPage: vi.fn() }));
 
 const fakeWsManager = { onNodeUpdate: () => () => {} } as unknown as WsManager;
 
@@ -43,7 +43,6 @@ function mount(items: NodeSummary[]) {
 beforeEach(() => {
   scopes = [];
   vi.mocked(getNodesPage).mockReset();
-  vi.mocked(getTelemetryAvailability).mockReset();
   stubVirtualLayout(500, 38); // the table is virtualized
 });
 
@@ -73,53 +72,6 @@ describe("NodeTable paging", () => {
     mount([node({ id: "node-a", name: "Node A" })]);
     await screen.findByText("Node A");
     expect(vi.mocked(getNodesPage)).toHaveBeenCalledWith(["YVR"], expect.objectContaining({ limit: 200 }));
-  });
-});
-
-describe("collected telemetry filter", () => {
-  it("continues sorted pages when the first page has no telemetry matches", async () => {
-    const key = "cd".repeat(32);
-    const first = Array.from({ length: 200 }, (_, i) => node({ id: `first-${i}`, name: `Node ${i}`, publicKey: "ab".repeat(32) }));
-    vi.mocked(getTelemetryAvailability).mockResolvedValue({ nodes: new Map([[key, 1792500000000]]), retentionDays: 30 });
-    vi.mocked(getNodesPage).mockImplementation(async (_iatas, params) => params?.pageCursor
-      ? { items: [node({ id: "later", name: "Later reporting repeater", publicKey: key })], hasMore: false, sort: "name" }
-      : { items: first, hasMore: true, nextPageCursor: "later-page", sort: "name" });
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><NodeTable wsManager={fakeWsManager} selectedNodeId={null} onSelectNode={vi.fn()} /></QueryClientProvider>);
-    await screen.findByText("Node 0");
-    fireEvent.click(screen.getByRole("button", { name: /Telemetry/ }));
-    fireEvent.click(screen.getByRole("option", { name: "Available" }));
-    expect(await screen.findByText("Later reporting repeater")).toBeInTheDocument();
-    expect(getNodesPage).toHaveBeenCalledWith(["YVR"], expect.objectContaining({ pageCursor: "later-page", sort: "name", order: "asc" }));
-  });
-  it("loads one availability index only on demand and matches full repeater keys", async () => {
-    const key = "ab".repeat(32);
-    vi.mocked(getTelemetryAvailability).mockResolvedValue({nodes: new Map([[key, 1792500000000]]), retentionDays: 30});
-    mount([
-      node({ id: key, publicKey: key.toUpperCase(), name: "Reporting repeater" }),
-      node({ id: "other", publicKey: "ac".repeat(32), name: "No telemetry" }),
-      node({ id: "companion", nodeType: 1, publicKey: key, name: "Companion" }),
-    ]);
-    await screen.findByText("Reporting repeater");
-    expect(getTelemetryAvailability).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", {name: /Telemetry/}));
-    fireEvent.click(screen.getByRole("option", {name: "Available"}));
-    await screen.findByText(/last 30 days/);
-    expect(screen.getByText("Reporting repeater")).toBeInTheDocument();
-    expect(screen.queryByText("No telemetry")).not.toBeInTheDocument();
-    expect(screen.queryByText("Companion")).not.toBeInTheDocument();
-    expect(getTelemetryAvailability).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports unavailable intake instead of claiming there are no matching nodes", async () => {
-    vi.mocked(getTelemetryAvailability).mockRejectedValue(new Error("unavailable"));
-    mount([node({name:"Visible before filtering"})]);
-    await screen.findByText("Visible before filtering");
-    fireEvent.click(screen.getByRole("button", {name: /Telemetry/}));
-    fireEvent.click(screen.getByRole("option", {name: "Available"}));
-    await screen.findByText(/Telemetry availability could not be loaded/);
-    expect(screen.queryByText("No nodes")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", {name: "Retry"})).toBeInTheDocument();
   });
 });
 
@@ -305,21 +257,14 @@ describe("NodeTable server order", () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it("filters observed repeats independently of advert defaults", async () => {
+  it("sends the scope filter to the server", async () => {
     scopes = ["#bc"];
-    mountPages(() => sortedPage([
-      node({id:"a",name:"Carries BC",defaultScope:"#other",scopeEvidence:{since:0,until:24,scopes:[{name:"#bc",repeatObservations:12}]}}),
-      node({id:"b",name:"Advert only",defaultScope:"#bc",scopeEvidence:{since:0,until:24,scopes:[]}}),
-    ]));
-    await screen.findByText("Advert only");
-    expect(vi.mocked(getNodesPage)).toHaveBeenLastCalledWith(["YVR"], expect.objectContaining({scopeEvidence:true}));
+    mountPages((p) => sortedPage([node({ id: "a", name: p?.scope ? `in ${p.scope}` : "any scope" })]));
+    await screen.findByText("any scope");
+    expect(vi.mocked(getNodesPage)).toHaveBeenLastCalledWith(["YVR"], expect.objectContaining({ scope: undefined }));
     fireEvent.click(screen.getAllByRole("button", { name: /scope/i })[0]!);
     fireEvent.click(await screen.findByRole("option", { name: "#bc" }));
-    await waitFor(()=>expect(screen.queryByText("Advert only")).not.toBeInTheDocument());
-    expect(screen.getByText("Carries BC")).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("combobox",{name:"Scope evidence"}),{target:{value:"default"}});
-    await screen.findByText("Advert only");
-    expect(screen.queryByText("Carries BC")).not.toBeInTheDocument();
+    await screen.findByText("in #bc");
   });
 
   it("loads every page and sorts here when the server doesn't sort (before 2.1)", async () => {

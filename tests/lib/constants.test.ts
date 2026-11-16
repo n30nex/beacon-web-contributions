@@ -21,16 +21,15 @@ describe("filterEnabledTabs", () => {
 
   it("excludes named tabs case-insensitively", () => {
     expect(filterEnabledTabs(TABS, "map,nodes")).toEqual([
-      "Packets", "Channels", "Observers", "Topology", "Routes", "Traces", "Atlas", "Analytics",
+      "Packets", "Channels", "Observers", "Routes", "Traces", "Atlas", "Analytics",
     ]);
     expect(filterEnabledTabs(TABS, "MAP , NODES")).toEqual([
-      "Packets", "Channels", "Observers", "Topology", "Routes", "Traces", "Atlas", "Analytics",
+      "Packets", "Channels", "Observers", "Routes", "Traces", "Atlas", "Analytics",
     ]);
   });
 
-  it("retains the previous Atlas disabled-tab setting after the upstream rename", () => {
+  it("honors the previous Atlas disabled-tab setting after the rename", () => {
     expect(filterEnabledTabs(TABS, "MyAtlas")).not.toContain("Atlas");
-    expect(filterEnabledTabs(TABS, "MyAtlas")).toContain("Topology");
   });
 
   it("ignores unknown tab names", () => {

@@ -1,11 +1,9 @@
-import type { ScopeActivity } from "../features/scopes/types";
 import { API_BASE, DEFAULT_PAGE_SIZE } from "../lib/constants";
 import { noteRateLimited, noteRequestOk, parseRetryAfter } from "./rate-limit";
-import { parseTelemetryAvailability } from "../features/nodes/telemetry-availability";
 import type { CursorPage, PacketSummary, PacketDetail, IataCode, RegionSummary, Region, BrokerStatus, RouteEvidence, KnownRoute, CrossIATARoute, TraceTagSummary, TraceType, TraceDetail } from "../types/api";
 import type { ChannelPage, ChannelMessage } from "../features/channels/types";
 import type { ObserverSummary, Observer, AdvertObservation, ObserverDirectoryPage, ObserverDirectorySort } from "../features/observers/types";
-import type { Node, NodeActivity, NodeScopeEvidence, NodeObservation, NodeNeighbor, NodePage, NodeSort, NodeTelemetry, NodeTelemetryRange, NodePolling } from "../features/nodes/types";
+import type { Node, NodeActivity, NodeObservation, NodeNeighbor, NodePage, NodeSort, NodeTelemetry, NodeTelemetryRange, NodePolling } from "../features/nodes/types";
 
 import type {
   StatsSeries,
@@ -79,45 +77,6 @@ async function request<T>(path: string, params?: Record<string, string | number 
 
 // endpoint functions
 
-export async function getTelemetryAvailability(signal?: AbortSignal) {
-  return parseTelemetryAvailability(await request<unknown>("/node-telemetry/availability", undefined, signal));
-}
-
-export interface CollectedNodeSample {
-	 source?: "companion-poll" | "observer-reply";
-	 permitId?: string;
-	 evidence?: {kind: "correlated-reply"; heardBy: string[]; packetHashes: string[]};
-  nodeKey: string;
-  collectorKey: string;
-  radioKey: string;
-  receivedAt: number;
-  intervalHours?: number;
-  values?: Record<string, number> | null;
-  sensors?: { channel: number; kind: string; value: number; unit: string }[] | null;
-}
-
-export async function getCollectedNodeTelemetry(key: string, signal?: AbortSignal): Promise<{items: CollectedNodeSample[]; limit: number; truncated?: boolean; retentionDays?: number; windowStart?: number; windowEnd?: number}> {
-  try {
-    const value = await request<{items: CollectedNodeSample[]; limit: number; truncated?: boolean; retentionDays?: number; windowStart?: number; windowEnd?: number}>(`/node-telemetry/${encodeURIComponent(key)}`, undefined, signal);
-    if (!value || value.limit !== 500 || (value.truncated !== undefined && typeof value.truncated !== "boolean") || !Array.isArray(value.items) || value.items.length > 500 || value.items.some(sample =>
-      !sample || typeof sample.nodeKey !== "string" || typeof sample.collectorKey !== "string" || typeof sample.radioKey !== "string" ||
-      !/^[0-9a-f]{64}$/.test(sample.nodeKey) || !/^[0-9a-f]{64}$/.test(sample.collectorKey) || !/^[0-9a-f]{64}$/.test(sample.radioKey) ||
-      !Number.isSafeInteger(sample.receivedAt) || sample.receivedAt <= 0 ||
-      (sample.source != null && sample.source !== "companion-poll" && sample.source !== "observer-reply") ||
-      (sample.evidence != null && (sample.source !== "observer-reply" || sample.evidence.kind !== "correlated-reply" ||
-        !Array.isArray(sample.evidence.heardBy) || sample.evidence.heardBy.length > 128 ||
-        sample.evidence.heardBy.some(key => typeof key !== "string" || !/^[0-9a-f]{64}$/.test(key)) ||
-        !Array.isArray(sample.evidence.packetHashes) || sample.evidence.packetHashes.length > 2 ||
-        sample.evidence.packetHashes.some(hash => typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash)))) ||
-      (sample.intervalHours != null && (!Number.isInteger(sample.intervalHours) || sample.intervalHours < 1 || sample.intervalHours > 72)) ||
-      (sample.sensors != null && (!Array.isArray(sample.sensors) || sample.sensors.length > 32 || sample.sensors.some(sensor => !sensor || typeof sensor.kind !== "string" || typeof sensor.unit !== "string" || !Number.isInteger(sensor.channel) || !Number.isFinite(sensor.value)))) ||
-      (sample.values != null && (typeof sample.values !== "object" || Array.isArray(sample.values) || Object.values(sample.values).some(reading => typeof reading !== "number" || !Number.isFinite(reading)))))) {
-      throw new Error("Invalid collected telemetry history");
-    }
-    return {...value, truncated: value.truncated ?? value.items.length === 500};
-  } catch (error) { if (isNotFound(error)) return {items: [], limit: 500}; throw error; }
-}
-
 export function getObserverComparison(
   iatas: StatsRegion,
   params: { observerA: string; observerB: string; since: number; until: number },
@@ -169,7 +128,7 @@ export interface ServerInfo {
   minWebVersion: string | null;
   serverVersion: string;
   // absent on servers that predate the flags
-  features?: { polling?: boolean; accounts?: string; registration?: boolean; telemetryRequests?: boolean; alerts?: boolean; alertDelivery?: string; portalUrl?: string };
+  features?: { polling?: boolean; accounts?: string; registration?: boolean; telemetryRequests?: boolean; alerts?: boolean; atlasTelemetry?: boolean; alertDelivery?: string; portalUrl?: string };
 }
 
 export function getServerInfo(): Promise<ServerInfo> {
@@ -264,7 +223,6 @@ export interface RouteCursor {
 
 export async function getKnownRoutesPage(
   params?: { iatas?: string[]; hopCount?: number; cursor?: RouteCursor; limit?: number },
-  signal?: AbortSignal,
 ): Promise<CursorPage<KnownRoute, RouteCursor>> {
   const limit = params?.limit ?? DEFAULT_PAGE_SIZE;
   const iatas = params?.iatas ?? [];
@@ -275,7 +233,7 @@ export async function getKnownRoutesPage(
     cursor: params?.cursor?.lastSeen,
     cursorId: params?.cursor?.id,
     limit,
-  }, signal);
+  });
   return toCursorPage(items, limit, (r) => ({ lastSeen: r.lastSeen, id: r.id }));
 }
 
@@ -357,7 +315,7 @@ export function getNodesPage(
     pubkey?: string; // exact 64-hex key; an indexed lookup, unlike the prefix scan
     supportsMultibytePaths?: "true" | "false";
     supportsMultibyteTraces?: "true" | "false";
-    neighbors?: boolean; scopeEvidence?: boolean; // include each node's neighborIds (?neighbors=true)
+    neighbors?: boolean; // include each node's neighborIds (?neighbors=true)
     scope?: string; // transport scope name, e.g. "#bc"
     // server-side order, paged by pageCursor alone; check the page's `sort`, older servers ignore it
     sort?: NodeSort;
@@ -378,7 +336,6 @@ export function getNodesPage(
     supportsMultibytePaths: params?.supportsMultibytePaths,
     supportsMultibyteTraces: params?.supportsMultibyteTraces,
     neighbors: params?.neighbors ? "true" : undefined,
-    scopeEvidence: params?.scopeEvidence ? "true" : undefined,
     scope: params?.scope,
     sort: params?.sort,
     order: params?.sort ? params.order : undefined,
@@ -529,7 +486,7 @@ export function getObserverActivity(observerId: string, range: string, interval:
 }
 
 // Bucket per range, the same as the server's defaults.
-const NODE_TELEMETRY_INTERVAL: Record<NodeTelemetryRange, string> = { "24h": "1h", "168h": "6h", "720h": "24h" };
+const NODE_TELEMETRY_INTERVAL: Record<NodeTelemetryRange, string> = { "24h": "1h", "72h": "1h", "168h": "6h", "720h": "24h" };
 
 export function getNodeTelemetry(id: string, range: NodeTelemetryRange, signal?: AbortSignal): Promise<NodeTelemetry> {
   return request(`/nodes/${encodeURIComponent(id)}/telemetry`, { range, interval: NODE_TELEMETRY_INTERVAL[range] }, signal);
@@ -545,37 +502,3 @@ export function isNotFound(err: unknown): boolean {
 }
 
 export { ApiError };
-
-// Public cached MeshMapper metadata; counts are regional, never per-link evidence.
-export interface ScopeCatalogue {
-  iata: string;
-  url: string;
-  generatedAt: number;
-  checkedAt: number;
-  freshUntil: number;
-  lastError?: string;
-  repeaters: number;
-  scoped: number;
-  scopes: { name: string; repeaters: number; default: number; monitored: boolean; wardriving: boolean }[];
-}
-export function getScopeCatalogues(): Promise<ScopeCatalogue[]> {
-  return request("/scope-catalogues");
-}
-
-export function getTopologyLinks(iatas: string[] | undefined, window: string, signal?: AbortSignal): Promise<{ links: [string,string][]; capped: boolean; since: number; until: number }> {
-  return request("/routes/topology", { iatas: iatas?.join(","), window }, signal);
-}
-
-export function getScopeActivity(iatas: string[] | undefined, hours: 1 | 6 | 24, signal?: AbortSignal): Promise<ScopeActivity> { if(noIatas(iatas)) return Promise.resolve({since:0,until:Date.now(),truncated:false,scopes:[],observers:[],countries:[]}); return request("/scopes/activity", { iatas: iatasParam(iatas), hours }, signal); }
-
-// Read-only bounded POST; scope summaries refresh without fetching neighbours or rerunning layout.
-export async function getNodeScopeBatch(ids: string[], signal?:AbortSignal):Promise<Record<string,NodeScopeEvidence>> {
-  const result:Record<string,NodeScopeEvidence>={};
-  const unique=[...new Set(ids)].sort();
-  for(let offset=0;offset<unique.length;offset+=1000){
-    signal?.throwIfAborted();
-    const response=await fetch(`${API_BASE}/nodes/scopes`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nodeIds:unique.slice(offset,offset+1000)}),signal});
-    if(!response.ok)throw await errorFrom(response);noteRequestOk();Object.assign(result,await response.json());
-  }
-  return result;
-}

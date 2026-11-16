@@ -1,10 +1,7 @@
-import { ScopeWindow } from "../scopes/ScopeControls";
-import { ScopeTag } from "../../components/ScopeTag";
-import { nodeScopeStats, matchesScope, type ScopeHours, type ScopeMatch } from "./scope-evidence";
 import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { getNodesPage, getTelemetryAvailability } from "../../api/client";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { getNodesPage } from "../../api/client";
 import { useRegion } from "../../hooks/useRegion";
 import { useScopes } from "../../hooks/useScopes";
 import { useTick } from "../../hooks/useTick";
@@ -14,15 +11,14 @@ import { formatHex, timeAgoParts, formatRadio } from "../../lib/formatters";
 import { hasMapLocation } from "../map/location";
 import { Badge } from "../../components/Badge";
 import { Tooltip } from "../../components/Tooltip";
-import { NodeTypeBadge } from "../../components/NodeTypeBadge";
 import { Timestamp } from "../../components/Timestamp";
+import { ObserverIcon } from "../../components/ObserverIcon";
 import { DataTable, type Column, type TableSort } from "../../components/DataTable";
 import { LoadingPill } from "../../components/LoadingPill";
 import { NodeFilterBar, type MultibyteFilter } from "./NodeFilterBar";
 import { nodeSearchParams } from "./node-search";
 import { patchNodePages } from "./node-updates";
 import { ForeignNodeBadge } from "./ForeignNodeBadge";
-import { hasCollectedTelemetry } from "./telemetry-availability";
 import type { TFunction } from "i18next";
 import type { NodeSummary, NodeIATA, NodePage, NodeSort } from "./types";
 import type { CursorPage } from "../../types/api";
@@ -79,7 +75,12 @@ function renderNodeCard(node: NodeSummary, t: TFunction) {
         </span>
         {node.lastSeen != null && <Timestamp value={node.lastSeen} className="shrink-0 text-text-dim text-[11px]" />}
         <span className="shrink-0">
-          <NodeTypeBadge typeName={node.nodeTypeName} observer={node.isObserver} />
+          <Badge variant="default">
+            {node.isObserver && (
+              <Tooltip label={t("nodes.observer")} className="mr-1"><ObserverIcon /></Tooltip>
+            )}
+            {node.nodeTypeName}
+          </Badge>
         </span>
       </div>
       <div className="flex items-center gap-2 text-text-muted">
@@ -106,19 +107,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
   const [typeFilter, setTypeFilter] = useState("");
   const [pathsFilter, setPathsFilter] = useState<MultibyteFilter>("");
   const [tracesFilter, setTracesFilter] = useState<MultibyteFilter>("");
-  const [scopeHours,setScopeHours]=useState<ScopeHours>(24);
-  const [scopeMatch,setScopeMatch]=useState<ScopeMatch>("repeated");
-  const [scopeFilter, setScopeFilter] = useState(""); // "" = Any; applied by the server
-  const [telemetryFilter, setTelemetryFilter] = useState(false);
-  const telemetry = useQuery({
-    queryKey: ["node-telemetry-availability"],
-    queryFn: ({ signal }) => getTelemetryAvailability(signal),
-    enabled: telemetryFilter,
-    staleTime: 60_000,
-    retry: false,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
-  });
+  const [scopeFilter, setScopeFilter] = useState(""); // "" = Any
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("name");
   const [sort, setSort] = useState<TableSort>(NAME_SORT);
@@ -127,11 +116,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
   // A server that doesn't send lastSeen can't sort by it either, so Last heard stays hidden there.
   const [noLastSeen, setNoLastSeen] = useState(false);
 
-  const columns = useMemo<Column<NodeSummary>[]>(() => {
-    // One calculation per immutable node/window, not one allocation per sort comparison.
-    const cache=new WeakMap<NodeSummary,ReturnType<typeof nodeScopeStats>>();
-    const scopeStats=(node:NodeSummary)=>{let value=cache.get(node);if(!value){value=nodeScopeStats(node,scopeHours);cache.set(node,value);}return value;};
-    return [
+  const columns = useMemo<Column<NodeSummary>[]>(() => [
     {
       id: "name",
       header: t("nodes.colName"),
@@ -149,7 +134,12 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       sortValue: (node) => node.nodeTypeName,
       cell: (node) => (
         <div className="flex flex-wrap gap-1">
-          <NodeTypeBadge typeName={node.nodeTypeName} observer={node.isObserver} />
+          <Badge variant="default">
+            {node.isObserver && (
+              <Tooltip label={t("nodes.observer")} className="mr-1"><ObserverIcon /></Tooltip>
+            )}
+            {node.nodeTypeName}
+          </Badge>
           <ForeignNodeBadge possiblyForeign={node.possiblyForeign} />
         </div>
       ),
@@ -202,10 +192,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
           ? `${node.lat.toFixed(2)}, ${node.lng.toFixed(2)}`
           : "—",
     },
-    {id:"dominantScope",header:t("scopeView.dominant"),sortValue:n=>scopeStats(n).repeatScope,cell:n=>{const name=scopeStats(n).repeatScope;return name?<ScopeTag>{name}</ScopeTag>:"—";}},
-    {id:"unscopedShare",header:t("scopeView.share"),sortValue:n=>{const s=scopeStats(n);return s.totalRepeatObservations?(s.scopeRepeats["*"]??0)/s.totalRepeatObservations:null;},cell:n=>{const s=scopeStats(n);return s.totalRepeatObservations?`${(100*(s.scopeRepeats["*"]??0)/s.totalRepeatObservations).toFixed(1)}%`:"—";}},
-    {id:"lastRepeat",header:t("scopeView.last"),sortValue:n=>Math.max(0,...(n.scopeEvidence?.scopes??[]).map(s=>s.repeatedAt??0))||null,cell:n=>{const at=Math.max(0,...(n.scopeEvidence?.scopes??[]).map(s=>s.repeatedAt??0));return at?<Timestamp value={at}/>:"—";}},
-  ];}, [t, clientSort, noLastSeen,scopeHours]);
+  ], [t, clientSort, noLastSeen]);
 
   const renderCard = useCallback((node: NodeSummary) => renderNodeCard(node, t), [t]);
 
@@ -219,13 +206,10 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
   // so toggling the field with an empty box is a no-op and a name never gets sent as a hex prefix
   const { name: nameParam, pubkeyPrefix: pubkeyPrefixParam } = nodeSearchParams(searchField, search);
 
-  const scopeSorting = ["dominantScope","unscopedShare","lastRepeat"].includes(sort.id);
-  const scopeFiltering = !!scopeFilter || scopeMatch === "none";
-  const scopePaging=scopeFiltering||scopeSorting;
-  const serverSort = clientSort || scopeSorting ? undefined : toNodeSort(sort.id);
+  const serverSort = clientSort ? undefined : toNodeSort(sort.id);
   const queryKey = useMemo(
-    () => ["nodes", regionKey, typeFilter, pathsFilter, tracesFilter, nameParam, pubkeyPrefixParam, scopePaging, serverSort ?? "", serverSort ? sort.direction : ""],
-    [regionKey, typeFilter, pathsFilter, tracesFilter, nameParam, pubkeyPrefixParam, scopePaging, serverSort, sort.direction],
+    () => ["nodes", regionKey, typeFilter, pathsFilter, tracesFilter, nameParam, pubkeyPrefixParam, scopeFilter, serverSort ?? "", serverSort ? sort.direction : ""],
+    [regionKey, typeFilter, pathsFilter, tracesFilter, nameParam, pubkeyPrefixParam, scopeFilter, serverSort, sort.direction],
   );
 
   // The server filters and sorts; pages of 200 load as the table scrolls, a fresh first page for each
@@ -236,22 +220,19 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       getNodesPage(iatas, {
         cursor: page?.cursor,
         pageCursor: page?.pageCursor,
-        limit: scopeFiltering||scopeSorting?500:MAX_PAGE_SIZE,
+        limit: MAX_PAGE_SIZE,
         type: typeFilter || undefined,
         name: nameParam,
         pubkeyPrefix: pubkeyPrefixParam,
         supportsMultibytePaths: pathsFilter || undefined,
         supportsMultibyteTraces: tracesFilter || undefined,
-        scopeEvidence: true,
+        scope: scopeFilter || undefined,
         sort: serverSort,
         order: sort.direction,
       }),
     getId: nodeId,
     keepPrevious: true,
-    // Telemetry availability filters the loaded rows. Continue paced paging
-    // while it is selected so an empty first page cannot hide later matches.
-    auto: scopeFiltering || scopeSorting || (telemetryFilter ? telemetry.isSuccess && telemetry.data.nodes.size > 0 : clientSort),
-    refetchInterval: scopeFiltering || scopeSorting ? 60_000 : false,
+    auto: clientSort,
     enabled: isResolved !== false,
   });
 
@@ -263,12 +244,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
     if (sort.id === "lastSeen") setSort(NAME_SORT);
   }
 
-  const displayNodes = useMemo(
-    () => nodes.filter(n => (!telemetryFilter || hasCollectedTelemetry(n,telemetry.data)) && (!scopeFiltering || (n.nodeType===2 && matchesScope(n,scopeFilter,scopeMatch,scopeHours)))),
-    [nodes, telemetryFilter, telemetry.data,scopeFiltering,scopeFilter,scopeMatch,scopeHours],
-  );
-  const knownScopes=useScopes(scopeFilter);
-  const scopeOptions=useMemo(()=>[...new Set([...knownScopes,"*","?",...nodes.flatMap(n=>nodeScopeStats(n).scopeNames)])].sort(),[knownScopes,nodes]);
+  const scopeOptions = useScopes(scopeFilter);
 
   const handleNodeUpdate = useCallback(
     (data: WsNodeUpdate["data"]) => {
@@ -299,34 +275,25 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
           onTracesChange={setTracesFilter}
           scopeFilter={scopeFilter}
           onScopeChange={setScopeFilter}
-          scopeOptions={scopeOptions} scopeMatch={scopeMatch} onScopeMatchChange={setScopeMatch}
-          telemetryFilter={telemetryFilter}
-          onTelemetryChange={setTelemetryFilter}
+          scopeOptions={scopeOptions}
         />
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-1"><ScopeWindow value={scopeHours} onChange={setScopeHours}/>{(scopeFiltering||scopeSorting)&&<span role="status" className="text-[11px] text-text-muted">{isPaging?t("scopeView.filterHint"):`${displayNodes.length.toLocaleString()} / ${loadedCount.toLocaleString()}`}</span>}</div>
-        {telemetryFilter && <div className="px-4 py-2 text-xs text-text-muted" role="status">
-          {telemetry.isError
-            ? <>{t("nodeFilters.telemetryLoadError")} <button type="button" className="underline text-primary" onClick={() => void telemetry.refetch()}>{t("observerPage.retry")}</button></>
-            : telemetry.data ? t("nodeFilters.telemetryHistory", { days: telemetry.data.retentionDays }) : t("common.loading")}
-        </div>}
-
-        {!(telemetryFilter && telemetry.isError && !telemetry.data) && <DataTable
+        <DataTable
           columns={columns}
-          rows={displayNodes}
+          rows={nodes}
           rowKey={nodeId}
           selectedKey={selectedNodeId}
           onSelect={onSelectNode}
-          isLoading={isLoading || isResolved === false || (telemetryFilter && telemetry.isPending)}
+          isLoading={isLoading || isResolved === false}
           emptyLabel={t("nodes.empty")}
           sort={sort}
           onSortChange={setSort}
-          presorted={!clientSort && !scopeSorting}
-          onEndReached={clientSort || scopeSorting ? undefined : loadMore}
+          presorted={!clientSort}
+          onEndReached={clientSort ? undefined : loadMore}
           renderCard={renderCard}
           virtualize
           minWidth={noLastSeen ? "52rem" : "62rem"}
-        />}
+        />
         <LoadingPill loading={isPaging} error={isError} count={loadedCount} noun="nodes" position="bottom-3 right-3" />
       </div>
     </div>

@@ -8,7 +8,7 @@ HTML="${BEACON_INDEX_OUT:-/srv/index.html}"
 # Outside /srv so Caddy never serves it, and outside Caddy's /data and /config volumes.
 TEMPLATE="${BEACON_INDEX_TEMPLATE:-/var/lib/beacon-web/index.html}"
 TAG='<script src="/config.js"></script>'
-KEYS="VITE_API_BASE VITE_WS_URL VITE_MAP_CENTER VITE_MAP_ZOOM VITE_DISABLED_TABS VITE_ENABLED_THEMES VITE_APP_NAME VITE_SKIP_SPLASH VITE_BANNER VITE_CHANGELOG_URL"
+KEYS="VITE_API_BASE VITE_WS_URL VITE_MAP_CENTER VITE_MAP_ZOOM VITE_DISABLED_TABS VITE_ENABLED_THEMES VITE_APP_NAME VITE_SKIP_SPLASH VITE_BANNER"
 
 # Values are read from ENVIRON and JSON-escaped, so any character is safe; < too, so none can end
 # the inline copy's script element.

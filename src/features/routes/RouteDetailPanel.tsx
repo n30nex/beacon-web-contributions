@@ -1,11 +1,10 @@
-import { RouteScopes } from "../scopes/RouteScopes";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { DetailPanel, Section, Field } from "../../components/DetailPanel";
 import { Badge } from "../../components/Badge";
 import { Timestamp } from "../../components/Timestamp";
+import { InfoTip } from "../../components/InfoTip";
 import { CopyLinkButton } from "../../components/CopyLinkButton";
 import { ACTION_BUTTON_CLASS } from "../../components/action-button";
 import { getRouteEvidence, isNotFound } from "../../api/client";
@@ -37,13 +36,14 @@ interface RouteDetailPanelProps extends RouteActions {
 export function RouteDetailPanel({ route: listed, iata, pathKey, onClose, onAnalyzePacket, onViewObserver, onViewNode }: RouteDetailPanelProps) {
   const { t } = useTranslation();
   const [params] = useSearchParams();
-  const [openedAt] = useState(Date.now);
   const rawSince = params.get("routeSince"), rawUntil = params.get("routeUntil");
   const rawWidth = params.get("routeHashSize"), rawPath = params.get("routePathBytes");
   const fixed = rawSince !== null || rawUntil !== null;
   const since = Number(rawSince), until = Number(rawUntil), hashSize = Number(rawWidth);
   const pinned = rawWidth !== null || rawPath !== null;
-  const invalidWindow = fixed && (params.getAll("routeSince").length !== 1 || params.getAll("routeUntil").length !== 1 || !rawSince || !rawUntil || !/^\d+$/.test(rawSince) || !/^\d+$/.test(rawUntil) || !Number.isSafeInteger(since) || !Number.isSafeInteger(until) || until <= since || until > openedAt || until - since > 30 * 86_400_000);
+  // The server checks future bounds against its clock. A user's clock must not
+  // invalidate a window copied from a server response.
+  const invalidWindow = fixed && (params.getAll("routeSince").length !== 1 || params.getAll("routeUntil").length !== 1 || !rawSince || !rawUntil || !/^\d+$/.test(rawSince) || !/^\d+$/.test(rawUntil) || !Number.isSafeInteger(since) || !Number.isSafeInteger(until) || until <= since || until - since > 30 * 86_400_000);
   const invalidPath = pinned && (params.getAll("routeHashSize").length !== 1 || params.getAll("routePathBytes").length !== 1 || !rawWidth || !/^[1-3]$/.test(rawWidth) || !rawPath || !/^[0-9a-f]+$/.test(rawPath) || rawPath.length < 4 * hashSize || rawPath.length > 126 * hashSize || rawPath.length % (2 * hashSize) !== 0);
   const pathParams = pinned && !invalidPath ? { hashSize, pathBytes: rawPath! } : {};
   const invalid = invalidWindow || invalidPath;
@@ -59,9 +59,10 @@ export function RouteDetailPanel({ route: listed, iata, pathKey, onClose, onAnal
     retry: false,
   });
   const first = query.data?.pages[0];
-  const route = listed ?? first?.route;
+  const route = first?.route ?? listed;
   const reports = query.data?.pages.flatMap(page => page.items) ?? [];
   const capped = (query.data?.pages.length ?? 0) >= MAX_PAGES && query.data?.pages.at(-1)?.hasMore;
+  const width = first?.matchAvailable && first.hashSize ? first.hashSize : "—";
 
   return (
     <DetailPanel
@@ -80,14 +81,14 @@ export function RouteDetailPanel({ route: listed, iata, pathKey, onClose, onAnal
           </div>
         </Section>
 
-        <Section title={t("routeDetail.route")}><RouteScopes ids={route.hops.map(h=>h.nodeId)}/>
+        <Section title={t("routeDetail.route")}>
           <div className="flex flex-col gap-1.5">
             {route.hops.map((hop, i) => {
               const resolved: ResolvedHop = { confidence: "high", nodes: hop.node ? [hop.node] : [] };
               return (
                 <div key={i} className="flex items-center gap-2 font-mono text-[13px]">
                   <span className="text-text-dim w-6 shrink-0">#{i + 1}</span>
-                  <ResolvedHopBlock hop={resolved} label={(first?.matchAvailable && first.pathBytes && first.hashSize ? first.pathBytes.slice(i * first.hashSize * 2, (i + 1) * first.hashSize * 2) : hop.hashBytes).toUpperCase()} onViewNode={onViewNode} />
+                  <ResolvedHopBlock hop={resolved} label={hop.hashBytes.toUpperCase()} onViewNode={onViewNode} />
                   {hop.node?.name && <span className="text-text-muted truncate"><EmojiText text={hop.node.name} /></span>}
                 </div>
               );
@@ -104,7 +105,7 @@ export function RouteDetailPanel({ route: listed, iata, pathKey, onClose, onAnal
       </>}
 
       {keyed && !invalid && (route || query.isError) && (
-        <Section title={t("routeEvidence.recent")}>
+        <Section title={<span className="inline-flex items-center gap-1.5">{t("routeEvidence.recent")}<InfoTip text={[t("routeEvidence.match", { width }), t("routeEvidence.caution"), t("routeEvidence.retention")]} /></span>}>
           {query.isError && (
             <div role="alert" className="mb-2 space-y-2 text-sm text-warn">
               <p>{t(isNotFound(query.error) ? "routeEvidence.missing" : "routeEvidence.error")}</p>

@@ -1,5 +1,3 @@
-import { observedPacketScope } from "../scopes/packet-scope";
-import { scopeMapHref } from "../scopes/model";
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -112,7 +110,7 @@ export function PacketAnalyzerDrawer({ detail, selectedObservationId, onClose, o
                 <Badge variant={payloadTypeVariant(detail.header.payloadType)}>
                   {PAYLOAD_TYPE_NAMES[detail.header.payloadType as PayloadTypeValue] ?? t("observerPage.unknown")}
                 </Badge>
-                {observedPacketScope({scope:detail.scope,routeType:detail.header.routeType}) && <ScopeTag boxed scopeName={observedPacketScope({scope:detail.scope,routeType:detail.header.routeType})} href={scopeMapHref(observedPacketScope({scope:detail.scope,routeType:detail.header.routeType}),24,window.location.search)}>{detail.scope || t(observedPacketScope({scope:detail.scope,routeType:detail.header.routeType})==="*"?"scopeView.unscoped":"scopeView.unresolved")}</ScopeTag>}
+                {detail.scope && <ScopeTag boxed>{detail.scope}</ScopeTag>}
                 <Tooltip
                   label={t("investigation.heardBy", { count: observerCount })}
                   className="ml-auto"
@@ -188,7 +186,7 @@ export function PacketAnalyzerDrawer({ detail, selectedObservationId, onClose, o
                       <span className="text-text-dim"> (2B) = </span>
                       <span className="text-text-normal">{detail.transportCodes.regionCode}</span>
                       <span className="text-text-dim"> → </span>
-                      {detail.scope ? <ScopeTag href={scopeMapHref(detail.scope!,24,window.location.search)}>{detail.scope}</ScopeTag> : <ScopeTag scopeName="?" href={scopeMapHref("?",24,window.location.search)}>{t("scopeView.unresolved")}</ScopeTag>}
+                      {detail.scope ? <ScopeTag>{detail.scope}</ScopeTag> : <span className="text-text-dim">{t("packetAnalyzer.noKnownScope")}</span>}
                     </div>
                     <div>
                       <span className="text-text-dim">{t("packetAnalyzer.code2")} </span>

@@ -47,9 +47,7 @@ describe("buildNodeCharts", () => {
   });
 
   it("converts mV to V and breaks the line at an empty bucket", () => {
-    const series = (buildNodeCharts(full, colors, labels).battery as any).series;
-    expect(series).toHaveLength(1);
-    const s = series[0];
+    const s = (buildNodeCharts(full, colors, labels).battery as any).series[0];
     expect(s.connectNulls).toBe(false);
     expect(s.data).toEqual([[0, 4.2], [H, null], [2 * H, 4.1]]);
   });

@@ -1,4 +1,3 @@
-vi.mock("../../../src/features/atlas/PreviewAtlasExtras", () => ({ PreviewAtlasExtras: () => null }));
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -171,8 +170,8 @@ describe("Atlas page", () => {
     expect(await screen.findByText("A public key prefix is hex only (0-9, a-f).")).toBeInTheDocument();
     expect(api.getNodesPage).not.toHaveBeenCalled();
     typeSearch("abcd");
-    await waitFor(()=>expect(api.getNodesPage).toHaveBeenCalledWith(undefined, { pubkeyPrefix: "abcd", limit: 8 }, expect.any(AbortSignal)),{timeout:3000});
     await screen.findByRole("button", { name: "Add Renamed repeater" });
+    expect(api.getNodesPage).toHaveBeenCalledWith(undefined, { pubkeyPrefix: "abcd", limit: 8 }, expect.any(AbortSignal));
   });
 
   it("clears the box when the search field changes, as the Nodes table does", async () => {

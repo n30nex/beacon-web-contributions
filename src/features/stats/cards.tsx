@@ -1,4 +1,3 @@
-import { Sparkline, PresenceStrip } from "../../components/Sparkline";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { EChart } from "./EChart";
@@ -16,7 +15,7 @@ export function Card({
   right?: ReactNode;
   children: ReactNode;
   className?: string;
-  wrap?: boolean;
+  wrap?: boolean; // let `right` drop under the title when the card is too narrow for both
 }) {
   return (
     <div className={`rounded-lg border border-border bg-bg-surface p-3.5 ${className ?? ""}`}>
@@ -26,6 +25,63 @@ export function Card({
       </div>
       {children}
     </div>
+  );
+}
+
+const SPARK_W = 120;
+const SPARK_H = 20;
+const sparkSpacer = <div className="mt-1.5 h-[20px]" />;
+
+function Sparkline({ values, color, markPeak, interpolateGaps }: { values: (number | null)[]; color: string; markPeak?: boolean; interpolateGaps?: boolean }) {
+  const known = values.filter((v): v is number => v !== null);
+  if (!known.length) return sparkSpacer;
+  const max = Math.max(...known);
+  const min = Math.min(...known);
+  const range = max - min || 1;
+  const x = (i: number) => values.length === 1 ? SPARK_W / 2 : (i / (values.length - 1)) * SPARK_W;
+  // a lone reading sits mid-height, not on the floor
+  const y = (v: number) => (known.length === 1 ? SPARK_H / 2 : SPARK_H - 1 - ((v - min) / range) * (SPARK_H - 2));
+  // A null hour breaks the line, so an outage shows as a gap rather than a straight join.
+  const runs: string[][] = [[]];
+  values.forEach((v, i) => {
+    if (v === null) runs.push([]);
+    else runs[runs.length - 1]!.push(`${x(i)},${y(v)}`);
+  });
+  const samples = values.flatMap((v, i) => v == null ? [] : [{ v, i }]);
+  const peak = values.indexOf(max);
+  return (
+    <svg width="100%" height={SPARK_H} viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} preserveAspectRatio="none" className="mt-1.5 overflow-visible" aria-hidden>
+      {runs.filter((run) => run.length > 1).map((run) => (
+        <polyline key={run[0]} fill="none" stroke={color} strokeWidth="1.5" points={run.join(" ")} />
+      ))}
+      {runs.filter(run => run.length === 1).map(run => { const [px, py] = run[0]!.split(","); return <line data-sample key={run[0]} x1={px} x2={px} y1={py} y2={py} stroke={color} strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />; })}
+      {interpolateGaps && samples.slice(1).map((point, i) => point.i > samples[i]!.i + 1 ? <line data-gap key={point.i} x1={x(samples[i]!.i)} y1={y(samples[i]!.v)} x2={x(point.i)} y2={y(point.v)} stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.45" /> : null)}
+      {markPeak && (
+        // zero-length round-capped stroke: stays a circle under preserveAspectRatio="none"
+        <line data-peak x1={x(peak)} x2={x(peak)} y1={y(max)} y2={y(max)} stroke={color} strokeWidth="5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      )}
+    </svg>
+  );
+}
+
+// One bar per run of hours that reported, so gaps read at a glance.
+function PresenceStrip({ hours, color }: { hours: boolean[]; color: string }) {
+  if (hours.length === 0) return sparkSpacer;
+  const slot = SPARK_W / hours.length;
+  const bars: { start: number; length: number }[] = [];
+  hours.forEach((on, i) => {
+    const last = bars.at(-1);
+    if (!on) return;
+    if (last && last.start + last.length === i) last.length++;
+    else bars.push({ start: i, length: 1 });
+  });
+  return (
+    <svg width="100%" height={SPARK_H} viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} preserveAspectRatio="none" className="mt-1.5" aria-hidden>
+      <line x1="0" x2={SPARK_W} y1={SPARK_H / 2} y2={SPARK_H / 2} stroke={color} strokeWidth="1" opacity="0.25" />
+      {bars.map((bar) => (
+        <rect key={bar.start} x={bar.start * slot} y={SPARK_H / 2 - 4} width={bar.length * slot} height="8" fill={color} />
+      ))}
+    </svg>
   );
 }
 
@@ -40,6 +96,7 @@ export function StatCard({
   sublabel,
   compact,
   interpolateGaps,
+  wrapSublabel,
   visual,
 }: {
   label: ReactNode;
@@ -49,19 +106,20 @@ export function StatCard({
   markPeak?: boolean;
   presence?: boolean[];
   sublabel?: ReactNode;
-  compact?: boolean;
   interpolateGaps?: boolean;
+  wrapSublabel?: boolean; // let a long sub-label run to a second line instead of cutting it
+  compact?: boolean; // narrow tiles: value stays text-xl so "-77.2 dBm" never wraps
   visual?: ReactNode; // replaces the sparkline; keep it near the sparkline's height
 }) {
   return (
     <div className="flex flex-col rounded-lg border border-border bg-bg-surface px-3.5 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
         <span className="min-w-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</span>
-        {sublabel && <span className="min-w-0 max-w-full truncate font-mono text-[9px] text-text-dim">{sublabel}</span>}
+        {sublabel && <span className={`min-w-0 max-w-full font-mono text-[9px] text-text-dim ${wrapSublabel ? "" : "truncate"}`}>{sublabel}</span>}
       </div>
       <div className={`mt-0.5 font-mono text-xl font-bold tabular-nums text-text-bright ${compact ? "" : "sm:text-2xl"}`}>{value}</div>
       <div className="mt-auto">
-        {visual ?? (presence ? <PresenceStrip hours={presence} color={accent} /> : spark ? <Sparkline values={spark} color={accent} markPeak={markPeak} interpolateGaps={interpolateGaps} /> : <div className="mt-1.5 h-[20px]" />)}
+        {visual ?? (presence ? <PresenceStrip hours={presence} color={accent} /> : spark ? <Sparkline values={spark} color={accent} markPeak={markPeak} interpolateGaps={interpolateGaps} /> : sparkSpacer)}
       </div>
     </div>
   );

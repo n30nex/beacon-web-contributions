@@ -4,13 +4,6 @@ import { BottomNav } from "../../src/components/BottomNav";
 import i18n from "../../src/i18n";
 
 describe("BottomNav", () => {
-  it("retains Topology while placing Atlas before Analytics in the upstream overflow order", () => {
-    render(<BottomNav activeTab="Topology" onTabChange={() => {}} />);
-    fireEvent.click(screen.getByText("More"));
-    expect(screen.getAllByRole("menuitem").map(item => item.textContent)).toEqual([
-      "Observers", "Topology", "Routes", "Traces", "Atlas", "Analytics",
-    ]);
-  });
   it("keeps Nodes primary and puts Atlas in More, with its identifier intact in French", async () => {
     const onTabChange = vi.fn();
     render(<BottomNav activeTab="Atlas" onTabChange={onTabChange} />);

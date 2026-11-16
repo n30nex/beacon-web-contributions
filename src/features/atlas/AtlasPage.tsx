@@ -18,7 +18,7 @@ import type { ObserverDirectoryItem } from "../observers/types";
 import { Card } from "../stats/cards";
 import { Segmented } from "../stats/Segmented";
 import { AtlasCard, type AtlasActions } from "./AtlasCard";
-import { ATLAS_FILE_MAX_BYTES, ATLAS_LIMIT, atlasFile, atlasFileName, homeView, parseAtlas, pinKey, readAtlasFile, resolveObserverNode, withTiles, withView, type AtlasImport, type AtlasPin, type AtlasRange, type AtlasView, type ObserverTile } from "./atlas";
+import { ATLAS_FILE_MAX_BYTES, ATLAS_LIMIT, atlasFile, atlasFileName, homeView, parseAtlas, pinKey, readAtlasFile, resolveObserverNode, withTelemetryTiles, withTiles, withView, type AtlasImport, type AtlasPin, type AtlasRange, type AtlasView, type ObserverTile, type TelemetryTile } from "./atlas";
 import { useCardDrag } from "./useCardDrag";
 import { useSyncedAtlas } from "./useSyncedAtlas";
 
@@ -48,9 +48,8 @@ export function AtlasPage({ active = true, ...actions }: AtlasActions & { active
   const { saved, update, adjust, storageFailed, synced, notice: syncNotice, clearNotice } = useSyncedAtlas();
   // Same single-row bar the other tabs use on a phone: the search shrinks, nothing wraps.
   const isMobile = useIsMobile();
-  const [linkedKey] = useState(() => { const key = new URLSearchParams(window.location.search).get("atlasAdd") ?? ""; return /^[a-f\d]{64}$/i.test(key) ? key.toLowerCase() : ""; });
-  const [search, setSearch] = useState(linkedKey);
-  const [field, setField] = useState(linkedKey ? "pubkey" : "name");
+  const [search, setSearch] = useState("");
+  const [field, setField] = useState("name");
   // One card at a time is away from the view it opens on.
   const [open, setOpen] = useState<{ key: string; view: AtlasView } | null>(null);
   const viewOf = (pin: AtlasPin) => (open?.key === pinKey(pin) ? open.view : homeView(pin));
@@ -117,6 +116,8 @@ export function AtlasPage({ active = true, ...actions }: AtlasActions & { active
     adjust((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) && other.kind === "node" ? { ...other, id, observerId } : other)) }));
   const retile = (pin: AtlasPin, tiles: readonly ObserverTile[]) =>
     update((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) ? withTiles(other, tiles) : other)) }));
+  const retelemetry = (pin: AtlasPin, tiles: readonly TelemetryTile[]) =>
+    update((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) && other.kind === "node" ? withTelemetryTiles(other, tiles) : other)) }));
   const pinView = (pin: AtlasPin, view: AtlasView) => {
     update((value) => ({ ...value, pins: value.pins.map((other) => (pinKey(other) === pinKey(pin) && other.kind === "node" ? withView(other, view) : other)) }));
     setOpen((current) => (current?.key === pinKey(pin) ? null : current));
@@ -339,7 +340,6 @@ export function AtlasPage({ active = true, ...actions }: AtlasActions & { active
                   </ul>
                 )}
                 {addObserver.isError && <p role="alert" className="mt-1 text-danger">{t("common.loadFailed")}</p>}
-                {results.data?.kind === "node" && !results.data.items.length && field === "pubkey" && /^[a-f\d]{64}$/i.test(typed) && <button type="button" className={ACTION_BUTTON_CLASS} disabled={full || saved.pins.some(pin => pin.kind === "node" && pin.publicKey === typed.toLowerCase())} onClick={() => append({kind:"node",id:"",publicKey:typed.toLowerCase(),name:""})}>{t("nodeTelemetry.addCard")}</button>}
                 {results.data?.hasMore && !hint && (
                   <p className="mt-1 text-text-muted">{t("atlas.refine", { limit: SEARCH_LIMIT })}</p>
                 )}
@@ -365,6 +365,7 @@ export function AtlasPage({ active = true, ...actions }: AtlasActions & { active
                     onResolved={(id, observerId) => relink(pin, id, observerId)}
                     onUpgrade={(match, observerId) => upgrade(pin, match, observerId)}
                     onTilesChange={(tiles) => retile(pin, tiles)}
+                    onTelemetryTilesChange={(tiles) => retelemetry(pin, tiles)}
                     handle={drag.handleProps(index)}
                     {...actions}
                   />

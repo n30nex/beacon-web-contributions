@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { getNode, getNodeObservations, getNodeNeighbors } from "../../api/client";
-import { NodeTypeBadge } from "../../components/NodeTypeBadge";
 import { Badge } from "../../components/Badge";
 import { DetailPanel, Section, Field } from "../../components/DetailPanel";
 import { CopyButton } from "../../components/CopyButton";
@@ -14,8 +13,6 @@ import { hasMapLocation } from "../map/location";
 import type { NodeObservation, NodeNeighbor } from "./types";
 import { ForeignNodeBadge } from "./ForeignNodeBadge";
 import { MeshMapperSection } from "./MeshMapperSection";
-import { NodeScopes } from "./NodeScopes";
-import { CollectedNodeTelemetry } from "./CollectedNodeTelemetry";
 import { Tooltip } from "../../components/Tooltip";
 import { EmojiText } from "../../components/EmojiText";
 import { useFeatures } from "../../hooks/useFeatures";
@@ -37,7 +34,7 @@ function NodeNeighborRow({ neighbor, onClick }: { neighbor: NodeNeighbor; onClic
         <span className={`font-mono font-semibold tracking-wider truncate ${neighbor.name ? "text-primary" : "text-text-dim italic"}`}>
           <EmojiText text={neighbor.name ?? formatHex(neighbor.id)} />
         </span>
-        <NodeTypeBadge typeName={neighbor.nodeTypeName} />
+        <Badge variant="default">{neighbor.nodeTypeName}</Badge>
         <IataChip>{neighbor.iata}</IataChip>
         <Timestamp value={neighbor.lastSeen} className="text-text-dim ml-auto font-mono text-[11px]" />
       </div>
@@ -100,8 +97,6 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
     queryKey: ["node", nodeId],
     queryFn: () => getNode(nodeId),
     staleTime: 30_000,
-    refetchInterval: (query) => !query.state.error && query.state.data?.scopeEvidence ? 60_000 : false,
-    refetchIntervalInBackground: false,
   });
 
   const { data: observations } = useQuery({
@@ -117,9 +112,6 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
   });
 
   const hasLocation = hasMapLocation(node);
-  const fullLink = new URL(window.location.href);
-  fullLink.searchParams.set("tab", "Nodes"); fullLink.searchParams.set("nodePage", nodeId);
-  for (const key of ["node", "hash", "analyze", "path", "observation"]) fullLink.searchParams.delete(key);
   const features = useFeatures();
   const showTelemetry = features.polling && !!node && isPolledNodeType(node.nodeTypeName);
   const canRequest = useRequestsAvailable();
@@ -131,7 +123,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
       title={t("nodeDetail.title")}
       onClose={onClose}
       collapsible
-      headerAction={<div className="flex flex-wrap items-center gap-2"><a className="min-h-9 content-center text-[11px] text-primary hover:underline" href={fullLink.pathname + fullLink.search}>{t("nodePage.open")}</a><CopyLinkButton params={{ tab: "Nodes", node: nodeId }} ariaLabel={t("nodeDetail.copyLink")} /></div>}
+      headerAction={<CopyLinkButton params={{ tab: "Nodes", node: nodeId }} ariaLabel={t("nodeDetail.copyLink")} />}
       isLoading={isLoading}
       notFound={!node}
       notFoundLabel={t("nodeDetail.notFound")}
@@ -148,7 +140,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                 <span className={`font-mono text-xs font-semibold tracking-wider ${node.name ? "text-primary" : "text-text-dim italic"}`}>
                   <EmojiText text={node.name ?? formatHex(node.id)} />
                 </span>
-                <NodeTypeBadge typeName={node.nodeTypeName} observer={node.isObserver} />
+                <Badge variant="default">{node.nodeTypeName}</Badge>
                 <ForeignNodeBadge possiblyForeign={node.possiblyForeign} />
                 {node.meshmapper?.carpeater && (
                   <Tooltip label={t("nodeDetail.carpeaterHint")} focusable>
@@ -192,9 +184,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
               </Section>
             )}
 
-            <NodeScopes node={node} />
             {node.meshmapper && <MeshMapperSection mm={node.meshmapper} />}
-            {node.nodeType === 2 && <CollectedNodeTelemetry publicKey={node.publicKey} active />}
 
             {showTelemetry ? (
               <Suspense fallback={null}>
@@ -208,7 +198,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                 <Field label={t("nodeDetail.multibytePaths")} value={node.supportsMultibytePaths ? t("nodeDetail.yes") : t("nodeDetail.no")} />
                 <Field label={t("nodeDetail.multibyteTraces")} value={node.supportsMultibyteTraces ? t("nodeDetail.yes") : t("nodeDetail.no")} />
                 {node.radio && <Field label={t("nodeDetail.radio")} value={formatRadio(node.radio) ?? "—"} />}
-                {node.defaultScope && <Field label={t("map.scopeAdvert")} value={node.defaultScope} />}
+                {node.defaultScope && <Field label={t("nodeDetail.scope")} value={node.defaultScope} />}
               </div>
             </Section>
 

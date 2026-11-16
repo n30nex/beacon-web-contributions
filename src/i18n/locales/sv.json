@@ -57,6 +57,10 @@
       "copyLink": "Kopiera länk",
       "copied": "Kopierad",
       "copyFailed": "Kopieringen misslyckades",
+      "showPassword": "Visa lösenord",
+      "hidePassword": "Dölj lösenord",
+      "show": "Visa",
+      "hide": "Dölj",
       "filters": "Filter",
       "closeFilters": "Stäng filter",
       "clearAll": "Rensa alla",
@@ -68,11 +72,7 @@
       "clear": "Rensa",
       "none": "Ingen",
       "noMatches": "Inga träffar",
-      "filterPlaceholder": "Filtrera...",
-      "showPassword": "Visa lösenord",
-      "hidePassword": "Dölj lösenord",
-      "show": "Visa",
-      "hide": "Dölj"
+      "filterPlaceholder": "Filtrera..."
     },
     "mesh": {
       "totalPackets": "Totalt antal paket",
@@ -634,28 +634,7 @@
         "zoomIn": "Zooma in",
         "zoomOut": "Zooma ut",
         "closePopup": "Stäng popup"
-      },
-      "repeaterScopes": "Repeatrarnas scopes",
-      "scopesInView": "Scopes i vyn",
-      "scopeLegend": "Förklaring av repeaterscopes",
-      "scopesSource": "Alla hörda/rapporterade scopes. Repeatrar · observerade upprepningar (24h).",
-      "scopeUnknown": "Okänd scope",
-      "scopeOther": "Övriga scopes",
-      "noRepeatersInView": "Inga repeatrar i vyn.",
-      "scopeClusters": "Färgen följer flest observerade upprepningar. Lika antal eller saknade data är neutrala. En repeater kan ingå i flera scopes.",
-      "scopeDetailsTitle": "Scopes · alla hörda",
-      "scopeCounts": "Observerade upprepningar · 24h",
-      "scopeEvidenceUnavailable": "Servern ger inga uppgifter om upprepningar.",
-      "scopeRepeated": "Upprepad",
-      "scopeReported": "Rapporterad lista",
-      "scopeHeard": "Hörd av observatör",
-      "scopeAdvert": "Annonsstandard",
-      "scopeWildcard": "Utan scope / joker (*)",
-      "scopeReportedEmpty": "Ett listsvar innehöll inga poster.",
-      "scopeReportConflict": "Sparade listsvar skiljer sig; alla rapporterade poster visas.",
-      "scopeReportMeaning": "Antalen är mottagna MQTT-rapporter om upplösta floodvägar, inte unika radiosändningar. Listor och annonsstandard är separata; inga rapporter betyder okänt.",
-      "scopeHashEvidence": "{{bytes}}-bytes väghash",
-      "scopeUnmatched": "Scope · okänt namn"
+      }
     },
     "nodeFilters": {
       "label": "Nodfilter",
@@ -668,11 +647,7 @@
       "no": "Nej",
       "fieldName": "Namn",
       "fieldPubkey": "Publik nyckel",
-      "all": "Alla",
-      "telemetry": "Telemetri",
-      "telemetryAvailable": "Tillgänglig",
-      "telemetryHistory": "Repeatrar med telemetri under de senaste {{days}} dagarna. Äldre mätningar är historik, inte aktuell status.",
-      "telemetryLoadError": "Telemetritillgängligheten kunde inte hämtas. Ett tidigare resultat kan visas. Försök igen eller ta bort filtret."
+      "all": "Alla"
     },
     "packetAnalyzer": {
       "title": "Paketanalyserare",
@@ -915,8 +890,7 @@
     },
     "charts": {
       "uniquePackets": "Unika paket",
-      "busy": "Beläggning",
-      "gapLegend": "Heldragna linjer och punkter visar mätningar. Streckade linjer uppskattar mellan saknade mätningar."
+      "busy": "Beläggning"
     },
     "packetList": {
       "pathSearchInvalid": "Ange fullständiga hopphashar med samma längd, separerade med blanksteg, kommatecken eller → (t.ex. 7f a4).",
@@ -978,131 +952,6 @@
     "units": {
       "perDay": "{{value}}/d"
     },
-    "nodeTelemetry": {
-      "shortTemperature": "Temp.",
-      "noData": "Ingen telemetri mottagen",
-      "more": "Mer telemetri ({{count}})",
-      "loadError": "Repeaterns telemetri kunde inte hämtas.",
-      "collected": "Repeatertelemetri · senaste 30 dagarna",
-      "collector": "Insamlare {{key}}",
-      "channel": "Kanal {{channel}}",
-      "limit": "De senaste 24 mätserierna visas.",
-      "metrics": {
-        "batteryMv": "Batteri",
-        "uptimeSeconds": "Drifttid",
-        "lastRssiDbm": "Senaste RSSI",
-        "lastSnrDb": "Senaste SNR",
-        "noiseFloorDbm": "Brusnivå",
-        "queueLength": "Kö",
-        "receivedPackets": "Mottagna paket",
-        "sentPackets": "Skickade paket",
-        "voltage": "Spänning",
-        "temperature": "Temperatur",
-        "humidity": "Luftfuktighet",
-        "relative_humidity": "Luftfuktighet",
-        "barometer": "Lufttryck",
-        "pressure": "Lufttryck",
-        "barometric_pressure": "Lufttryck",
-        "current": "Ström",
-        "power": "Effekt",
-        "illuminance": "Ljus",
-        "luminosity": "Ljus"
-      },
-      "addCard": "Lägg till repeaterns telemetrikort",
-      "refreshFailed": "Uppdateringen misslyckades; senast hämtade mätning visas.",
-      "historyLimited": "De {{count}} senaste sparade mätningarna visas; hela perioden kanske inte täcks."
-    },
-    "scopeView": {
-      "title": "Scopeaktivitet",
-      "window": "Tidsfönster för scope",
-      "select": "Scope",
-      "all": "Alla scopes",
-      "highlight": "Markera",
-      "isolate": "Isolera",
-      "clear": "Rensa",
-      "mode": "Scopeunderlag",
-      "repeated": "Observerad vidarebefordran",
-      "any": "Hörd eller rapporterad",
-      "default": "Annonserad standardscope",
-      "none": "Ingen aktuell vidarebefordran",
-      "dominant": "Mest vidarebefordrad scope",
-      "share": "Andel utan scope",
-      "last": "Senaste vidarebefordran",
-      "distribution": "Fördelning av observerad vidarebefordran",
-      "reports": "Rapporter om vidarebefordran",
-      "received": "Floodrapporter utan spårningar",
-      "samples": "Dubblettrensade vägprov",
-      "sampleHelp": "Samma paket, väg och identifierade noder räknas en gång per mottagningsområde och UTC-timme över observatörerna. Detta räknar inte unika radiosändningar.",
-      "first": "Första observation",
-      "latest": "Senaste observation",
-      "reported": "Rapporterad konfiguration",
-      "heard": "Hörd av mottagaren",
-      "wildcard": "Joker i konfigurationen",
-      "unscoped": "Trafik utan scope",
-      "unresolved": "Okänt scopenamn",
-      "unknown": "Inget scopeunderlag",
-      "noRecent": "Ingen observerad vidarebefordran i tidsfönstret",
-      "configuredOnly": "Endast annonser, mottagningar eller konfigurationsrapporter finns",
-      "partial": "Den aktuella timmen är ofullständig. Saknade observationer bevisar inte att trafik saknas.",
-      "history": "Scopeaktivitet per timme",
-      "historyHelp": "Staplarna visar mottagna observationer; streckade luckor saknar prov. Ingen interpolation eller nolltrafik antas.",
-      "showAtlas": "Visa scopeaktivitet",
-      "hideAtlas": "Dölj scopeaktivitet",
-      "filterHint": "Scopefilter och sortering omfattar alla sidor när de läses in. Resultaten är ofullständiga tills inläsningen är klar.",
-      "observers": "Mottagande observatörer",
-      "repeaters": "Aktiva repeatrar",
-      "countries": "Mottagningsområden per land",
-      "countryHelp": "Landet följer observatörens deklarerade MQTT-IATA, inte sändaren eller en bekräftad gränspassage. Endast mottagna områden visas.",
-      "country": "Mottagarland",
-      "observer": "Observatör",
-      "area": "Mottagningsområde",
-      "ambiguous": "Tvetydiga hoppmatchningar uteslutna",
-      "unresolvedHops": "Oidentifierade hopp uteslutna",
-      "unavailable": "Scopeaktiviteten kunde inte läsas in",
-      "truncated": "Ögonblicksbilden är ofullständig; välj ett mindre område.",
-      "openMap": "Visa scope på kartan",
-      "colorScopes": "Färga noder efter vidarebefordrad scope",
-      "trafficScope": "Scope för livepaket",
-      "unknownHelp": "Okända scopenamn och tvetydiga repeateridentiteter redovisas separat. Ingetdera bevisar ett konfigurationsfel.",
-      "columns": "Scopedetaljer",
-      "ageUnknown": "Rapportens ålder saknas",
-      "stale": "Rapport äldre än 24 h",
-      "sampleSince": "Dubblettrensade prov tillgängliga sedan",
-      "receiverNote": "Mottagningar räknar MQTT-rapporter i valda områden. Vidarebefordran gäller noder hörda där, även deras vägar observerade på andra håll: populationerna skiljer sig.",
-      "table": "Scopeunderlag i siffror",
-      "routeNodes": "Scopeunderlag för noderna längs vägen",
-      "routeHelp": "Detta visar nodernas scopes, inte bevis för att en scope följde vägen. Öppna ett paket för att granska registrerad scope och väg.",
-      "scoped": "Trafik med namngiven scope",
-      "displayMode": "Scopevisning",
-      "more": "Visa fler rader (första {{count}} per tabell visas)"
-    },
-    "meshmapperProfile": {
-      "provenance": "Platsuppgifter anges av ägare eller regionala administratörer i MeshMapper; de är inte uppmätt telemetri.",
-      "refreshFailed": "Uppdateringen misslyckades; senast hämtade data visas.",
-      "reports": "MeshMapper-observationer",
-      "reportHint": "Observationerna använder MeshMappers egen täckning och tidsperioder, separat från Beacon.",
-      "status": "Status hos leverantören",
-      "statuses": {
-        "active": "Aktiv",
-        "ambiguous": "Tvetydigt ID",
-        "inactive": "Inaktiv",
-        "disabled": "Inaktiverad"
-      },
-      "backbone": "Stamnätsplats",
-      "trafficShare": "Andel regional routad trafik",
-      "firstSeen": "Först registrerad",
-      "lastHeard": "Senast hörd annons",
-      "advertBytes": "Hashbyte i annonser",
-      "currentPreset": "Aktuell förinställning (MHz, kHz, SF)",
-      "radioHistory": "Förinställningar hörda under de senaste 30 dagarna",
-      "witnesses_one": "{{count}} källa",
-      "witnesses_other": "{{count}} källor",
-      "neighbors": "Uppladdad granntabell ({{count}})",
-      "neighborHint": "Uppladdad av en repeateradministratör. Posterna skapar inte Beacon-rutter; ett olöst prefix är inte en verifierad nodidentitet.",
-      "unresolved": "Olöst prefix",
-      "fetched": "hämtat",
-      "open": "Visa i MeshMapper"
-    },
     "atlas": {
       "syncedToAccount": "Synkad med ditt konto",
       "conflict": "Atlas ändrades på en annan enhet. Visar den senaste versionen.",
@@ -1110,10 +959,25 @@
       "loadFailed": "Det gick inte att läsa in Atlas från ditt konto. Visar den här enhetens kopia.",
       "mergeDropped_one": "{{count}} kort från den här enheten fick inte plats i kontots Atlas.",
       "mergeDropped_other": "{{count}} kort från den här enheten fick inte plats i kontots Atlas.",
-      "readingsLabel": "Batteri och temperatur, senaste timmedelvärdet"
+      "readingsLabel": "Batteri och temperatur, senaste timmedelvärdet",
+      "viewTelemetry": "Telemetri",
+      "telemetry": {
+        "temperature": "Temperatur",
+        "packets": "Paket",
+        "signal": "Signal",
+        "errors": "Fel",
+        "needsPair": "Kräver två statusvärden",
+        "noReadings": "Inga värden i det här fönstret",
+        "restarted": "Startades om",
+        "sentPerHour": "skickade {{value}}",
+        "polledBy": "Avläses av {{name}}",
+        "polled": "Avläses",
+        "notPolled": "Avläses inte just nu",
+        "lastReading": "Senaste värdet",
+        "help": "Värden som Beacon har hämtat från den här repeatern, över det valda fönstret. Sändtid är andelen av tiden som gått åt till att sända och ta emot. Paket och fel räknas per timme. Signal är det senaste SNR och RSSI som repeatern rapporterade. Med få värden ritas punkterna som prickar."
+      }
     },
     "account": {
-      "back": "Tillbaka",
       "entry": {
         "signIn": "Logga in",
         "profile": "Profil",
@@ -1141,8 +1005,7 @@
         }
       },
       "resend": {
-        "button": "Skicka länken igen",
-        "sent": "Kolla din e-post. Om adressen kan användas är en ny länk på väg."
+        "button": "Skicka länken igen"
       },
       "checkEmail": {
         "title": "Kolla din e-post",
@@ -1160,11 +1023,9 @@
         "submitting": "Skapar…",
         "usernameHint": "3 till 30 bokstäver, siffror, punkter, bindestreck eller understreck.",
         "passwordHint": "Minst 12 tecken.",
-        "haveAccount": "Har du redan ett konto? Logga in",
-        "closed": "Registreringen är stängd på den här servern.",
-        "sent": "Om adressen kan användas är en bekräftelselänk på väg. Följ den för att slutföra kontot.",
         "havePrompt": "Har du redan ett konto?",
-        "signInLink": "Logga in"
+        "signInLink": "Logga in",
+        "closed": "Registreringen är stängd på den här servern."
       },
       "verify": {
         "title": "Verifiera din e-post",
@@ -1179,14 +1040,13 @@
         "intro": "Ange kontots e-postadress så skickar vi en återställningslänk.",
         "send": "Skicka länk",
         "sending": "Skickar…",
-        "sent": "Om adressen har ett konto är en återställningslänk på väg.",
+        "setIntro": "Välj ett nytt lösenord för ditt konto.",
         "set": "Ange lösenord",
         "setting": "Sparar…",
         "done": "Ditt lösenord är ändrat. Du kan logga in med det nu.",
         "signIn": "Logga in",
         "newLink": "Begär en ny länk",
-        "toSignIn": "Tillbaka till inloggning",
-        "setIntro": "Välj ett nytt lösenord för ditt konto."
+        "toSignIn": "Tillbaka till inloggning"
       },
       "bridge": {
         "title": "Logga in i Beacon-appen",
@@ -1210,6 +1070,7 @@
         "whenSeconds_other": "om {{count}} sekunder",
         "whenMinutes_one": "om {{count}} minut",
         "whenMinutes_other": "om {{count}} minuter",
+        "passwordTooLong": "Lösenordet är för långt.",
         "weak_password": "Lösenordet godtas inte: {{reason}}",
         "username_taken": "Användarnamnet är upptaget.",
         "invalid_input": "Kontrollera det du skrev och försök igen.",
@@ -1220,12 +1081,15 @@
         "accounts_disabled": "Konton är inte aktiverade på den här servern.",
         "service_unavailable": "Servern är upptagen. Försök igen om en stund.",
         "read_only": "Servern är skrivskyddad just nu. Försök igen senare.",
-        "portal_managed": "Din inloggning hanteras i MeshMapper-portalen. Använd den där.",
-        "passwordTooLong": "Lösenordet är för långt."
+        "portal_managed": "Din inloggning hanteras i MeshMapper-portalen. Använd den där."
       },
       "profile": {
         "title": "Profil",
         "account": {
+          "about": "Hur du visas i Beacon och adressen ditt konto använder.",
+          "aboutPortal": "Hur du visas i Beacon.",
+          "displayNameHint": "Visas i menyn och i din Atlas.",
+          "passwordHint": "Vi frågar så att ingen annan kan ändra den från en öppen session.",
           "title": "Konto",
           "username": "Användarnamn",
           "displayName": "Visningsnamn",
@@ -1245,12 +1109,17 @@
         "currentPassword": "Nuvarande lösenord",
         "wrongPassword": "Lösenordet stämmer inte.",
         "password": {
+          "about": "När du ändrar det loggas du ut från dina andra enheter.",
           "title": "Lösenord",
           "submit": "Byt lösenord",
           "submitting": "Sparar…",
           "done": "Lösenordet är bytt. Dina andra enheter har loggats ut."
         },
         "devices": {
+          "about": "Var du är inloggad just nu.",
+          "signOutAsk": "Logga ut {{label}}?",
+          "signOutYes": "Ja, logga ut",
+          "signOutOthersAsk": "Logga ut alla andra enheter?",
           "title": "Enheter",
           "loading": "Laddar enheter…",
           "thisDevice": "Den här enheten",
@@ -1281,6 +1150,9 @@
         }
       },
       "alerts": {
+        "about": "Få besked när en radio i din Atlas behöver uppmärksamhet.",
+        "on": "På",
+        "off": "Av",
         "title": "Aviseringar",
         "loading": "Läser in aviseringar…",
         "toEmail": "Aviseringar skickas till {{email}}",
@@ -1289,6 +1161,11 @@
         "empty": "Aviseringar ställs in på radioapparater i din Atlas. Lägg först till en radio.",
         "openAtlas": "Öppna fliken Atlas",
         "always": "Du får alltid besked när en av dina telemetribegäranden behöver uppmärksamhet.",
+        "none": "Inga larm på",
+        "onCount_one": "{{count}} larm på",
+        "onCount_other": "{{count}} larm på",
+        "firing_one": "Larmar: {{name}}",
+        "firing_other": "Larmar: {{count}} larm",
         "turnOn": "Avisering: {{name}}",
         "backOnlineHint": "Slå först på {{name}}.",
         "voltsPerDay": "{{volts}} V per dygn",
@@ -1385,6 +1262,16 @@
         }
       },
       "requests": {
+        "poll": {
+          "ok": "Avläses av {{name}}",
+          "pending": "Tilldelad {{name}}. Första avläsningen är på väg.",
+          "not_direct": "Tilldelad {{name}}, som inte kan höra repeatern direkt just nu.",
+          "no_reply": "{{name}} frågar, men repeatern svarar inte.",
+          "not_claimed": "Tilldelad {{name}}. Väntar på att den tar över.",
+          "password": "{{name}} rapporterade ett lösenordsproblem. Kontrollerar."
+        },
+        "about": "Be Beacon läsa en repeaters statistik med ett gästlösenord.",
+        "openNodes": "Öppna fliken Noder",
         "title": "Telemetribegäran",
         "count": "{{used}} av {{limit}}",
         "loading": "Laddar begäran…",
@@ -1392,8 +1279,8 @@
         "status": {
           "waiting": "Väntar på en observatör som kan nå den",
           "active": "Avläses",
-          "login_failed": "Repeatern avvisade lösenordet",
-          "admin_stopped": "Stoppad: lösenordet gav administratörsåtkomst och raderades",
+          "login_failed": "Stoppad: lösenordet avvisades",
+          "admin_stopped": "Stoppad: administratörslösenord",
           "disabled": "Pausad: repeatern har inte hörts på sistone"
         },
         "reason": {
@@ -1413,7 +1300,8 @@
         "passwordSet": "Lösenord satt",
         "noPassword": "Inget lösenord",
         "changePassword": "Ändra lösenord",
-        "adminStoppedHelp": "Lösenordet du angav var ett administratörslösenord. Beacon har raderat det. Bara ett gästlösenord startar begäran igen.",
+        "adminStoppedHelp": "Lösenordet du angav var ett administratörslösenord, så Beacon raderade det. Ange repeaterns gästlösenord för att starta igen.",
+        "loginFailedHelp": "Repeatern avvisade det lösenordet. Ange rätt gästlösenord för att försöka igen.",
         "enterNewPassword": "Ange ett nytt lösenord",
         "enterNewPasswordNamed": "Ange ett nytt lösenord för {{name}}",
         "changePasswordNamed": "Ändra lösenord för {{name}}",

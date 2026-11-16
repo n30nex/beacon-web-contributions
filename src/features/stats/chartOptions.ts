@@ -154,7 +154,7 @@ export function leaderboardOption(
 export function presetBarsOption(
   rows: { name: string; nodes: number; observers: number }[],
   c: ChartColors,
-  gridLeft = 172, // fits a full "910.525 Â· 62.5k Â· SF7" label
+  gridLeft = 172, // fits a full "910.525 · 62.5k · SF7" label
   labels = { nodes: "Nodes", observers: "Observers" },
 ): EChartsOption {
   const totals = rows.map((r) => r.nodes + r.observers);
@@ -268,7 +268,7 @@ export function donutOption(
 }
 
 // Vertical bars for the payload-type breakdown. Replaced the old donut: with 10+ slivers the legend
-// needed scrolling, names truncated, and thin slices couldn't be compared by eye â€” bars label every
+// needed scrolling, names truncated, and thin slices couldn't be compared by eye — bars label every
 // category inline and need no legend at all.
 export function typeBarOption(
   items: { name: string; value: number; color?: string }[],
@@ -314,10 +314,10 @@ function percentAxis(c: ChartColors) {
   return valueAxis(c, { axisLabel: { color: c.textMuted, fontFamily: MONO, fontSize: 10, formatter: "{value}%" } });
 }
 
-const pctLabel = (v: unknown) => (typeof v === "number" ? `${v}%` : "â€”");
+const pctLabel = (v: unknown) => (typeof v === "number" ? `${v}%` : "—");
 
 // connectNulls false leaves a visible break where a bucket has no reading (polled node telemetry).
-export function airtimeOption(points: TelemetryPoint[], c: ChartColors, bucketMs: number | null, connectNulls = false): EChartsOption {
+export function airtimeOption(points: TelemetryPoint[], c: ChartColors, bucketMs: number | null, connectNulls = true): EChartsOption {
   return {
     animation: false,
     useUTC: true,
@@ -352,15 +352,6 @@ export function metricLineOption<P extends { t: number }>(
   c: ChartColors,
   o: { name: string; color: string; accessor: (p: P) => number | null; delta?: boolean; area?: boolean; connectNulls?: boolean },
 ): EChartsOption {
-  const data = seriesData(points,o.accessor,o.delta ?? false);
-  // Only gauge readings are interpolated. Counter/delta/stacked gaps stay empty.
-  const bridges: (number|null)[][] = [];
-  let previous=-1;
-  if (!o.delta && !o.area && o.connectNulls === undefined) data.forEach((point,i)=>{
-    if (point[1]==null) return;
-    if (previous>=0 && i>previous+1) bridges.push(data[previous]!,point,[point[0]!,null]);
-    previous=i;
-  });
   return {
     animation: false,
     useUTC: true,
@@ -373,15 +364,14 @@ export function metricLineOption<P extends { t: number }>(
       {
         name: o.name,
         type: "line",
-        smooth: false,
+        smooth: true,
         symbol: "none",
-        connectNulls: o.connectNulls ?? false,
-        data,
-        lineStyle: { color: o.color, width: 2, shadowColor: withAlpha(o.color,0.3), shadowBlur: 3 },
+        connectNulls: o.connectNulls ?? true,
+        data: seriesData(points, o.accessor, o.delta ?? false),
+        lineStyle: { color: o.color, width: 1.8 },
         itemStyle: { color: o.color },
         ...(o.area ? { areaStyle: { color: withAlpha(o.color, 0.16) } } : {}),
       },
-      ...(bridges.length ? [{ type: "line" as const, data: bridges, connectNulls: false, smooth: false, symbol: "none", silent: true, tooltip: { show: false, trigger: "none" as const }, lineStyle: { color:o.color, width:1.4, type:"dashed" as const, opacity:0.5 }, emphasis:{disabled:true} }] : []),
     ],
   };
 }
@@ -466,7 +456,7 @@ export function heardOption(points: ActivityPoint[], c: ChartColors, w: TimeWind
   };
 }
 
-const dbLabel = (v: unknown) => (typeof v === "number" ? `${v} dB` : "â€”");
+const dbLabel = (v: unknown) => (typeof v === "number" ? `${v} dB` : "—");
 
 export function snrHeardOption(points: ActivityPoint[], c: ChartColors, w: TimeWindow, labels = { average: "Avg", minimum: "Min" }): EChartsOption {
   return {

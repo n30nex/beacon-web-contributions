@@ -120,24 +120,6 @@ describe("useMapNodes layer order", () => {
     ]);
   });
 
-  it("keeps full idle markers when the preview dim option is off", () => {
-    const map = stackMap([]);
-    const mapRef = { current: map };
-    const iconRef = { current: null };
-    const geojson = { type: "FeatureCollection" as const, features: [] };
-    const dotTypes = ["repeater"];
-    const { rerender } = renderHook(
-      ({ dim }) => useMapNodes(mapRef, iconRef, true, geojson, true, "dark", false, () => {}, "n1", true, null, "", dotTypes, dim),
-      { initialProps: { dim: false } },
-    );
-    const markerFilter = () => vi.mocked(map.setFilter).mock.calls.filter(([id]) => id === NODES_POINT_LAYER_ID).at(-1)?.[1];
-    expect(map.setLayoutProperty).toHaveBeenLastCalledWith(LIVE_DOTS_LAYER_ID, "visibility", "none");
-    expect(markerFilter()).toEqual(["!", ["has", "point_count"]]);
-    rerender({ dim: true });
-    expect(map.setLayoutProperty).toHaveBeenLastCalledWith(LIVE_DOTS_LAYER_ID, "visibility", "visible");
-    expect(markerFilter()).toEqual(["all", ["!", ["has", "point_count"]], ["==", ["get", "id"], "n1"]]);
-  });
-
   it("leaves a click to the lit icon drawn over a dot", () => {
     const map = stackMap([LIVE_LIT_ICON_LAYER_ID]);
     const onSelect = vi.fn();

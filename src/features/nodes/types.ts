@@ -5,19 +5,7 @@ export interface NodeIATA {
   lastHeard: number; // unix ms
 }
 
-export interface NodeScopeEvidence {
-  since: number; until: number; scopes: NodeScope[];
-  reportedEmpty?: boolean; conflictingReports?: boolean;
-  hourly?: NodeScopeHour[];
-}
-export interface NodeScope {
-  name: string; repeatObservations: number; repeatedAt?: number;
-  repeatObservations1h?: number; repeatObservations6h?: number; firstRepeatedAt?: number; uniqueSamples?: number; uniqueSince?: number;
-  minHashBytes?: number; reported?: boolean; reportedAt?: number; heardAt?: number;
-}
-
 export interface NodeSummary {
-  scopeEvidence?: NodeScopeEvidence;
   id: string;
   publicKey: string;
   nodeType: number;
@@ -36,8 +24,8 @@ export interface NodeSummary {
   observerId?: string;
   // Server verdict against its configured local border union; absence is unknown/disabled.
   possiblyForeign?: boolean;
-  stale?: boolean; // server-configured freshness threshold; absent on older servers
   lastSeen?: number; // epoch ms; servers up to 2.1.0 leave it out
+  stale?: boolean; // server-configured freshness threshold; absent on older servers
 }
 
 // /nodes orders, server 2.1.0+; lastSeen ascending only from a server whose rows carry lastSeen
@@ -79,17 +67,6 @@ export interface MeshMapperRepeater {
   scopes: MeshMapperScope[];
   scopesCheckedAt?: number; // set with empty scopes = it answered with none; absent = never asked
   defaultScope?: MeshMapperDefaultScope; // separate from Node.defaultScope (Beacon's own match)
-  profileUrl?: string;
-  refreshFailed?: boolean;
-  status?: "active" | "ambiguous" | "inactive" | "disabled";
-  firstSeen?: number;
-  lastHeard?: number;
-  advertBytes?: number;
-  backbone?: boolean;
-  backboneShare?: number;
-  currentPreset?: string;
-  radios?: { preset: string; lastSeen?: number; witnesses?: number }[];
-  neighbors?: { key: string; resolved: boolean; snr?: number; heardAt?: number }[];
 }
 
 export interface MeshMapperSite {
@@ -167,7 +144,6 @@ export interface NodeObservation {
   hopCount?: number;
 }
 
-export interface NodeScopeHour { name: string; hour: number; reports: number; uniqueSamples: number; firstSeen: number; lastSeen: number }
 // Polled repeater readings, bucketed by the server; every field after `readings` is absent when no reading carried it.
 export interface NodeTelemetryPoint {
   t: number; // epoch ms
@@ -187,7 +163,7 @@ export interface NodeTelemetryPoint {
   counterSpanSecs?: number; // seconds the counter increments cover; divide by this, not the bucket length
 }
 
-export type NodeTelemetryRange = "24h" | "168h" | "720h";
+export type NodeTelemetryRange = "24h" | "72h" | "168h" | "720h";
 
 export interface NodeTelemetry {
   range: string;

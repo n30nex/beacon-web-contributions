@@ -1,4 +1,3 @@
-import { observedPacketScope } from "../scopes/packet-scope";
 import { useCallback, useEffect, useRef } from "react";
 import type {
   Map as MapLibreMap,
@@ -67,7 +66,6 @@ export function useMapPacketFlow(
   // unfiltered node index: packet hops carry no type, and a filtered-out node should still light
   nodeIndex: Map<string, LiveNodeInfo>,
   onSelectNode: (id: string) => void,
-  scopeFilter = "",
 ) {
   const flowsRef = useRef<Flow[]>([]);
   const litRef = useRef<Map<string, LitEntry>>(new Map());
@@ -100,6 +98,9 @@ export function useMapPacketFlow(
 
   const startLoop = useCallback(() => {
     if (rafRef.current != null) return;
+    // GeoJSON updates cross the worker boundary. Keep their cost independent of
+    // a monitor's 60/120/240 Hz refresh rate; positions still use elapsed time.
+    let paintedTick = -1;
     // light hop k of a flow at the moment the dot reached it; unknown nodes stay dark
     function lightHop(p: Flow, k: number) {
       const id = p.ids[k];
@@ -120,6 +121,12 @@ export function useMapPacketFlow(
     function frame() {
       const map = mapRef.current;
       const now = performance.now();
+      const tick = Math.floor(now * 30 / 1000);
+      if (tick === paintedTick) {
+        rafRef.current = requestAnimationFrame(frame);
+        return;
+      }
+      paintedTick = tick;
 
       const dots: Feature<Point>[] = [];
       const lines: Feature<LineString>[] = [];
@@ -282,7 +289,6 @@ export function useMapPacketFlow(
     if (!enabled) return;
     const map = mapRef.current;
     const unsub = wsManager.onPacketObservation((data) => {
-      if(scopeFilter&&observedPacketScope(data.packet)!==scopeFilter)return;
       const obs = data.observation;
       // resolvedPath is opt-in and the toggle above lands a beat after connect, but the endpoints
       // always ship — bail rather than animate a bare source→destination hop that never happened.
@@ -303,7 +309,7 @@ export function useMapPacketFlow(
       unsub();
       clearFlows(map);
     };
-  }, [enabled, wsManager, mapRef, startLoop, clearFlows, scopeFilter]);
+  }, [enabled, wsManager, mapRef, startLoop, clearFlows]);
 
   // clear on region change (paths came from the old dataset)
   useEffect(() => {

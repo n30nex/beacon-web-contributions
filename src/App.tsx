@@ -40,9 +40,8 @@ import { asStatsRange, asStatsTab } from "./features/stats/stats-url";
 import { useStatsRegion } from "./features/stats/useStats";
 import type { PacketDetail } from "./types/api";
 
-// Lazy-load the heavy pages so their chunks are fetched on first visit.
-const NodePage = lazy(() => import("./features/nodes/NodePage").then(m => ({ default: m.NodePage })));
-const TopologyPage = lazy(() => import("./features/topology/TopologyPage").then(m => ({ default: m.TopologyPage })));
+// Map (maplibre-gl, ~1MB) and Atlas are lazy-loaded so their chunks are fetched on first visit
+// instead of bloating the initial bundle.
 const AtlasPage = lazy(() => import("./features/atlas/AtlasPage").then(m => ({ default: m.AtlasPage })));
 const MapView = lazy(() => import("./features/map/MapView").then((m) => ({ default: m.MapView })));
 
@@ -137,19 +136,13 @@ function RegionWatcher({ wsManager: mgr }: { wsManager: WsManager }) {
 // wouldn't otherwise know was shareable). All-regions clears both params; any legacy ?region is folded
 // in. The guard skips redundant writes (and any setSearchParams feedback loop); replace keeps it out of
 // history.
-export function RegionUrlSync() {
+function RegionUrlSync() {
   const { selection } = useRegionSelection();
-  const previousSelection = useRef(selection);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const next = selectionToParams(selection, searchParams);
-    if (previousSelection.current !== selection) {
-      next.delete("topoNode");
-      next.delete("topoFocus");
-    }
-    previousSelection.current = selection;
     if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true, state: location.state });
   }, [selection, searchParams, setSearchParams, location.state]);
@@ -289,8 +282,7 @@ function AppInner() {
       const next = new URLSearchParams(prev);
       next.set("tab", tab);
       for (const key of VIEW_PARAMS) next.delete(key);
-      if (tab !== "Nodes") { next.delete("nodePage"); next.delete("nodeRange"); }
-      if (tab !== "Routes") for (const key of ["route", "routeIata", "routeRange", "routeSince", "routeUntil", "routeHashSize", "routePathBytes"]) next.delete(key);
+      if (tab !== "Routes") for (const key of ["route", "routeIata"]) next.delete(key);
       // the analyzer is URL-backed, so its mobile close lives here rather than above
       if (isMobile) next.delete("analyze");
       // AppShell fires onTabChange even for a no-op click on the already-active tab — only an actual
@@ -372,7 +364,6 @@ function AppInner() {
 
   const tabContent: Record<string, React.ReactNode> = {
     Atlas: <AtlasPage onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
-    Topology: <TopologyPage wsManager={wsManager} onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} />,
     Packets: (
       <PacketList
         wsManager={wsManager}
@@ -382,7 +373,7 @@ function AppInner() {
         onSelectObservation={setSelectedObservationId}
       />
     ),
-    Nodes: searchParams.get("nodePage") ? <NodePage nodeId={searchParams.get("nodePage")!} onViewNode={viewNode} onViewObserver={viewObserver} onAnalyzePacket={viewPacket} /> : <NodeTable wsManager={wsManager} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />,
+    Nodes: <NodeTable wsManager={wsManager} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />,
     Observers: <ObserverPage wsManager={wsManager} onAnalyzePacket={handleAnalyze} />,
     Routes: <RouteTable onAnalyzePacket={viewPacket} onViewObserver={viewObserver} onViewNode={viewNode} />,
     // analyze opens the packet overlay (modal) rather than the side drawer, which suits the

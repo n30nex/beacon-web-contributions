@@ -379,6 +379,7 @@ describe("NodeDetailPanel MeshMapper", () => {
   it.each([
     ["nothing set", empty],
     ["only a CARpeater flag", { ...empty, carpeater: true }],
+    ["only a sea-level height", { ...empty, site: { heightAslM: 341.6 } }],
   ])("is hidden when the record has %s", async (_, mm) => {
     mockGetNode.mockResolvedValue({ ...node, meshmapper: mm });
     renderPanel();

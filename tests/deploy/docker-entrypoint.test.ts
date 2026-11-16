@@ -5,10 +5,7 @@ import { join } from "node:path";
 import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 
-// POSIX shells also run on Windows (Git for Windows); pass portable paths to
-// dirname/sed/cp without changing the native filesystem paths used by cleanup.
-const shellPath = (path: string) => path.replaceAll("\\", "/");
-const SCRIPT = shellPath(join(process.cwd(), ".build/docker-entrypoint.sh"));
+const SCRIPT = join(process.cwd(), ".build/docker-entrypoint.sh");
 const TAG = '<script src="/config.js"></script>';
 // Vite moves the module script but keeps this tag verbatim in dist/index.html.
 const SHELL = readFileSync(join(process.cwd(), "index.html"), "utf8");
@@ -37,9 +34,9 @@ function runEntrypoint(env: Record<string, string>): Record<string, string> {
   execFileSync("sh", [SCRIPT, "true"], {
     env: {
       PATH: process.env.PATH,
-      BEACON_CONFIG_OUT: shellPath(p.config),
-      BEACON_INDEX_OUT: shellPath(p.html),
-      BEACON_INDEX_TEMPLATE: shellPath(join(p.dir, "keep", "index.html")),
+      BEACON_CONFIG_OUT: p.config,
+      BEACON_INDEX_OUT: p.html,
+      BEACON_INDEX_TEMPLATE: join(p.dir, "keep", "index.html"),
       ...env,
     },
     stdio: ["ignore", "ignore", "pipe"],
@@ -57,7 +54,7 @@ describe("docker-entrypoint.sh", () => {
     expect(cfg.VITE_API_BASE).toBe("https://api.example.com/api/v1");
     expect(cfg.VITE_BANNER).toBe("");
     expect(Object.keys(cfg).sort()).toEqual([
-      "VITE_API_BASE", "VITE_APP_NAME", "VITE_BANNER", "VITE_CHANGELOG_URL", "VITE_DISABLED_TABS", "VITE_ENABLED_THEMES",
+      "VITE_API_BASE", "VITE_APP_NAME", "VITE_BANNER", "VITE_DISABLED_TABS", "VITE_ENABLED_THEMES",
       "VITE_MAP_CENTER", "VITE_MAP_ZOOM", "VITE_SKIP_SPLASH", "VITE_WS_URL",
     ]);
   });
