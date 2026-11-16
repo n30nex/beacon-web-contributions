@@ -56,7 +56,7 @@ export function NodeFilterBar({
     className="shrink-0 rounded border border-border px-2 py-1 font-mono text-[11px] text-text-normal disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
     {t("contactExport.button")}
   </button>;
-  // close the sheet when leaving mobile â€” derive during render, not in an effect
+  // close the sheet when leaving mobile — derive during render, not in an effect
   if (sheetOpen && !isMobile) setSheetOpen(false);
 
   const activeCount = [typeFilter, pathsFilter, tracesFilter, scopeFilter].filter(Boolean).length;
@@ -122,7 +122,7 @@ export function NodeFilterBar({
         onFieldChange={onSearchFieldChange}
       />
 
-      <span className="text-border text-sm mx-0.5" aria-hidden>â”‚</span>
+      <span className="text-border text-sm mx-0.5" aria-hidden>│</span>
 
       {controls(false)}
       {exportButton}

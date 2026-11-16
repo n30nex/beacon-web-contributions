@@ -86,9 +86,9 @@ function renderNodeCard(node: NodeSummary, t: TFunction) {
         </span>
       </div>
       <div className="flex items-center gap-2 text-text-muted">
-        <span>{formatRadio(node.radio) ?? "â€”"}</span>
-        {location && <span>Â· {location}</span>}
-        {node.knownNeighborCount > 0 && <span>Â· {t("nodes.neighbors", { count: node.knownNeighborCount, formatted: node.knownNeighborCount.toLocaleString() })}</span>}
+        <span>{formatRadio(node.radio) ?? "—"}</span>
+        {location && <span>· {location}</span>}
+        {node.knownNeighborCount > 0 && <span>· {t("nodes.neighbors", { count: node.knownNeighborCount, formatted: node.knownNeighborCount.toLocaleString() })}</span>}
       </div>
       <ForeignNodeBadge possiblyForeign={node.possiblyForeign} />
       {node.iatas && node.iatas.length > 0 && (
@@ -152,7 +152,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       header: t("nodes.colRadio"),
       className: "text-text-muted",
       sortValue: clientSort ? (node) => formatRadio(node.radio) ?? null : undefined, // the server can't sort by radio
-      cell: (node) => formatRadio(node.radio) ?? "â€”",
+      cell: (node) => formatRadio(node.radio) ?? "—",
     },
     {
       id: "areas",
@@ -165,7 +165,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
             ))}
           </div>
         ) : (
-          <span className="text-text-dim">â€”</span>
+          <span className="text-text-dim">—</span>
         ),
     },
     {
@@ -183,7 +183,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       sortValue: (node) => node.lastSeen,
       firstSortDirection: "desc",
       width: "10rem",
-      cell: (node) => (node.lastSeen == null ? "â€”" : <Timestamp value={node.lastSeen} />),
+      cell: (node) => (node.lastSeen == null ? "—" : <Timestamp value={node.lastSeen} />),
     } satisfies Column<NodeSummary>]),
     {
       id: "location",
@@ -193,7 +193,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       cell: (node) =>
         hasMapLocation(node)
           ? `${node.lat.toFixed(2)}, ${node.lng.toFixed(2)}`
-          : "â€”",
+          : "—",
     },
   ], [t, clientSort, noLastSeen]);
 
