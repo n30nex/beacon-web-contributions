@@ -25,6 +25,8 @@ interface NodeFilterBarProps {
   scopeOptions: string[];
   onExportCsv?: () => void;
   exportCsvDisabled?: boolean;
+  onExportContacts?: () => void;
+  exportContactsDisabled?: boolean;
 }
 
 export function NodeFilterBar({
@@ -43,11 +45,18 @@ export function NodeFilterBar({
   scopeOptions,
   onExportCsv,
   exportCsvDisabled,
+  onExportContacts,
+  exportContactsDisabled,
 }: NodeFilterBarProps) {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
-  // close the sheet when leaving mobile — derive during render, not in an effect
+  const contactsAction = onExportContacts && <button type="button" onClick={onExportContacts}
+    disabled={exportContactsDisabled} title={t("contactExport.help")}
+    className="shrink-0 rounded border border-border px-2 py-1 font-mono text-[11px] text-text-normal disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+    {t("contactExport.button")}
+  </button>;
+  // close the sheet when leaving mobile â€” derive during render, not in an effect
   if (sheetOpen && !isMobile) setSheetOpen(false);
 
   const activeCount = [typeFilter, pathsFilter, tracesFilter, scopeFilter].filter(Boolean).length;
@@ -89,6 +98,7 @@ export function NodeFilterBar({
         <SearchBar value={search} onChange={onSearchChange} fields={searchFields} field={searchField} onFieldChange={onSearchFieldChange} />
         <FiltersButton activeCount={activeCount} onClick={() => setSheetOpen(true)} />
         {exportButton}
+        {contactsAction}
         {sheetOpen && (
           <FilterSheet onClose={() => setSheetOpen(false)} onClear={activeCount > 0 ? clearAll : undefined}>
             {controls(true)}
@@ -112,10 +122,11 @@ export function NodeFilterBar({
         onFieldChange={onSearchFieldChange}
       />
 
-      <span className="text-border text-sm mx-0.5" aria-hidden>│</span>
+      <span className="text-border text-sm mx-0.5" aria-hidden>â”‚</span>
 
       {controls(false)}
       {exportButton}
+      {contactsAction}
     </div>
   );
 }

@@ -27,6 +27,7 @@ import type { WsNodeUpdate } from "../../types/ws";
 import { EmojiText } from "../../components/EmojiText";
 import { MAX_PAGE_SIZE } from "../../lib/constants";
 import { downloadNodeCsv } from "./node-csv";
+import { downloadNodeContacts, nodeContacts } from "./node-contacts";
 
 const nodeId = (n: NodeSummary) => n.id; // stable id accessor for the paged hook's dedup and the table's row keys
 const NAME_SORT: TableSort = { id: "name", direction: "asc" };
@@ -85,9 +86,9 @@ function renderNodeCard(node: NodeSummary, t: TFunction) {
         </span>
       </div>
       <div className="flex items-center gap-2 text-text-muted">
-        <span>{formatRadio(node.radio) ?? "—"}</span>
-        {location && <span>· {location}</span>}
-        {node.knownNeighborCount > 0 && <span>· {t("nodes.neighbors", { count: node.knownNeighborCount, formatted: node.knownNeighborCount.toLocaleString() })}</span>}
+        <span>{formatRadio(node.radio) ?? "â€”"}</span>
+        {location && <span>Â· {location}</span>}
+        {node.knownNeighborCount > 0 && <span>Â· {t("nodes.neighbors", { count: node.knownNeighborCount, formatted: node.knownNeighborCount.toLocaleString() })}</span>}
       </div>
       <ForeignNodeBadge possiblyForeign={node.possiblyForeign} />
       {node.iatas && node.iatas.length > 0 && (
@@ -116,6 +117,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
   const [clientSort, setClientSort] = useState(false);
   // A server that doesn't send lastSeen can't sort by it either, so Last heard stays hidden there.
   const [noLastSeen, setNoLastSeen] = useState(false);
+  const [contactsNotice, setContactsNotice] = useState<{ count: number; loaded: number; skipped: number } | null>(null);
 
   const columns = useMemo<Column<NodeSummary>[]>(() => [
     {
@@ -150,7 +152,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       header: t("nodes.colRadio"),
       className: "text-text-muted",
       sortValue: clientSort ? (node) => formatRadio(node.radio) ?? null : undefined, // the server can't sort by radio
-      cell: (node) => formatRadio(node.radio) ?? "—",
+      cell: (node) => formatRadio(node.radio) ?? "â€”",
     },
     {
       id: "areas",
@@ -163,7 +165,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
             ))}
           </div>
         ) : (
-          <span className="text-text-dim">—</span>
+          <span className="text-text-dim">â€”</span>
         ),
     },
     {
@@ -181,7 +183,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       sortValue: (node) => node.lastSeen,
       firstSortDirection: "desc",
       width: "10rem",
-      cell: (node) => (node.lastSeen == null ? "—" : <Timestamp value={node.lastSeen} />),
+      cell: (node) => (node.lastSeen == null ? "â€”" : <Timestamp value={node.lastSeen} />),
     } satisfies Column<NodeSummary>]),
     {
       id: "location",
@@ -191,7 +193,7 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
       cell: (node) =>
         hasMapLocation(node)
           ? `${node.lat.toFixed(2)}, ${node.lng.toFixed(2)}`
-          : "—",
+          : "â€”",
     },
   ], [t, clientSort, noLastSeen]);
 
@@ -260,6 +262,14 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
 
   useWsNodeUpdateHandler(wsManager, handleNodeUpdate);
 
+  const exportContactsDisabled = isLoading || isPaging || isError || isResolved === false || nodes.length === 0;
+  const handleExportContacts = () => {
+    if (exportContactsDisabled) return;
+    const result = nodeContacts(nodes);
+    if (result.file.contacts.length) downloadNodeContacts(result.file);
+    setContactsNotice({ count: result.file.contacts.length, loaded: nodes.length, skipped: result.skipped });
+  };
+
   return (
     <div className="flex flex-1 min-h-0 min-w-0">
       <div className="relative flex flex-col flex-1 min-w-0">
@@ -279,7 +289,12 @@ export function NodeTable({ wsManager, selectedNodeId, onSelectNode }: NodeTable
           scopeOptions={scopeOptions}
           onExportCsv={() => downloadNodeCsv(nodes)}
           exportCsvDisabled={!nodes.length || isLoading || isPaging || isError || isResolved === false}
+          onExportContacts={handleExportContacts}
+          exportContactsDisabled={exportContactsDisabled}
         />
+        {contactsNotice && <p role="status" className="shrink-0 px-4 py-2 text-xs text-text-muted">
+          {t(contactsNotice.count ? "contactExport.result" : "contactExport.empty", contactsNotice)}
+        </p>}
 
         <DataTable
           columns={columns}
