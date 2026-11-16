@@ -1,6 +1,6 @@
 # Development audit fixes — November 2026
 
-This candidate starts at upstream dev `b0c2f83`. The page set and native telemetry
+This candidate starts at upstream dev `653ef5c`. The page set and native telemetry
 are upstream's. The former preview Topology, scope extensions and independent
 collector controls are excluded.
 
