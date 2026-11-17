@@ -1,9 +1,10 @@
 import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { getNode, getNodeObservations, getNodeNeighbors } from "../../api/client";
+import { getNode, getNodeObservations, getNodeNeighbors, isNotFound } from "../../api/client";
 import { Badge } from "../../components/Badge";
-import { DetailPanel, Section, Field } from "../../components/DetailPanel";
+import { DetailPanel, Section, Field, FoldSection } from "../../components/DetailPanel";
+import { ACTION_BUTTON_CLASS } from "../../components/action-button";
 import { CopyButton } from "../../components/CopyButton";
 import { CopyLinkButton } from "../../components/CopyLinkButton";
 import { IataChip } from "../../components/IataChip";
@@ -22,6 +23,8 @@ import { RequestTelemetry } from "./RequestTelemetry";
 // Pulls in ECharts, so it stays out of the main bundle; mounted only for polled node types.
 import { isPolledNodeType } from "./polledType";
 const NodeTelemetrySection = lazy(() => import("./NodeTelemetrySection"));
+
+const SUBHEAD = "mt-2 mb-0.5 font-mono text-[10px] uppercase tracking-wider text-text-dim first:mt-0";
 
 function NodeNeighborRow({ neighbor, onClick }: { neighbor: NodeNeighbor; onClick?: () => void }) {
   const { t } = useTranslation();
@@ -82,6 +85,19 @@ function NodeObservationRow({ obs, onClick }: { obs: NodeObservation; onClick?: 
   );
 }
 
+function NodeQueryError({ section, previousData, isFetching, onRetry }: { section: string; previousData: boolean; isFetching: boolean; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div role="alert" className="mb-2 space-y-1 font-mono text-[13px] text-danger">
+      <p>{t("common.loadFailed")}</p>
+      {previousData && <p className="text-text-muted">{t("nodeDetail.previousData")}</p>}
+      <button type="button" disabled={isFetching} aria-label={t("nodeDetail.retrySection", { section })} className={ACTION_BUTTON_CLASS} onClick={onRetry}>
+        {t("nodeDetail.retry")}
+      </button>
+    </div>
+  );
+}
+
 interface NodeDetailPanelProps {
   nodeId: string;
   onClose: () => void;
@@ -93,23 +109,28 @@ interface NodeDetailPanelProps {
 
 export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, onAnalyzePacket, onViewOnMap }: NodeDetailPanelProps) {
   const { t } = useTranslation();
-  const { data: node, isLoading } = useQuery({
+  const nodeQuery = useQuery({
     queryKey: ["node", nodeId],
     queryFn: () => getNode(nodeId),
     staleTime: 30_000,
   });
 
-  const { data: observations } = useQuery({
+  const observationsQuery = useQuery({
     queryKey: ["node-observations", nodeId],
     queryFn: () => getNodeObservations(nodeId, { limit: 50 }),
     staleTime: 30_000,
   });
 
-  const { data: neighbors } = useQuery({
+  const neighborsQuery = useQuery({
     queryKey: ["node-neighbors", nodeId],
     queryFn: ({ signal }) => getNodeNeighbors(nodeId, signal),
     staleTime: 30_000,
   });
+
+  const node = nodeQuery.data;
+  const observations = observationsQuery.data;
+  const neighbors = neighborsQuery.data;
+  const missing = nodeQuery.isError && isNotFound(nodeQuery.error);
 
   const hasLocation = hasMapLocation(node);
   const features = useFeatures();
@@ -117,6 +138,8 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
   const canRequest = useRequestsAvailable();
   // Handed to the lazy chart section so it sits inside it, without that chunk importing it.
   const requestBlock = canRequest && !!node && isPolledNodeType(node.nodeTypeName) ? <RequestTelemetry key={node.id} node={node} /> : null;
+  const telemetryInfo = requestBlock ? [t("nodeDetail.telemetry.requestIntro"), t("nodeDetail.telemetry.passwordNotice")] : undefined;
+  const LINK = "font-mono text-[11px] text-primary hover:underline";
 
   return (
     <DetailPanel
@@ -124,8 +147,8 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
       onClose={onClose}
       collapsible
       headerAction={<CopyLinkButton params={{ tab: "Nodes", node: nodeId }} ariaLabel={t("nodeDetail.copyLink")} />}
-      isLoading={isLoading}
-      notFound={!node}
+      isLoading={nodeQuery.isPending}
+      notFound={missing || (nodeQuery.isSuccess && !node)}
       notFoundLabel={t("nodeDetail.notFound")}
       notFoundIcon={
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-border">
@@ -133,9 +156,13 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
         </svg>
       }
     >
+      {nodeQuery.isError && !missing && <div className="px-3 py-2.5">
+        <NodeQueryError section={t("nodeDetail.title")} previousData={!!node} isFetching={nodeQuery.isFetching} onRetry={() => void nodeQuery.refetch()} />
+      </div>}
       {node && (
         <>
           <Section title={t("nodeDetail.summary")} first>
+            <div data-summary>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={`font-mono text-xs font-semibold tracking-wider ${node.name ? "text-primary" : "text-text-dim italic"}`}>
                   <EmojiText text={node.name ?? formatHex(node.id)} />
@@ -154,45 +181,38 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                 </div>
                 <CopyButton value={node.publicKey} ariaLabel={t("nodeDetail.copyKey")} className="shrink-0" />
               </div>
-              {node.observerId && (
-                <button
-                  type="button"
-                  onClick={() => onViewObserver(node.observerId!)}
-                  className="mt-2 block font-mono text-[11px] text-primary hover:underline"
-                >
-                  {t("nodeDetail.viewObserver")}
-                </button>
+              <div className="mt-1 font-mono text-[13px]">
+                <Field label={t("nodeDetail.lastSeen")} value={<Timestamp value={node.lastSeen} />} />
+              </div>
+              {(node.observerId || (hasMapLocation(node) && onViewOnMap)) && (
+                <div className="mt-2 flex gap-4">
+                  {node.observerId && (
+                    <button type="button" onClick={() => onViewObserver(node.observerId!)} className={LINK}>
+                      {t("nodeDetail.viewObserver")}
+                    </button>
+                  )}
+                  {hasMapLocation(node) && onViewOnMap && (
+                    <button type="button" onClick={() => onViewOnMap(node.lat, node.lng)} className={LINK}>
+                      {t("nodeDetail.viewOnMap")}
+                    </button>
+                  )}
+                </div>
               )}
+            </div>
             </Section>
 
-            {(hasLocation || node.locationSource) && (
-              <Section title={t("nodeDetail.location")}>
-                <div className="flex flex-wrap gap-x-4 gap-y-0.5 font-mono text-[13px]">
-                  {hasLocation && <Field label={t("nodeDetail.lat")} value={node.lat!.toFixed(5)} />}
-                  {hasLocation && <Field label={t("nodeDetail.lng")} value={node.lng!.toFixed(5)} />}
-                  {node.locationSource && <Field label={t("nodeDetail.source")} value={node.locationSource} />}
-                </div>
-                {hasMapLocation(node) && onViewOnMap && (
-                  <button
-                    type="button"
-                    onClick={() => onViewOnMap(node.lat, node.lng)}
-                    className="mt-2 block font-mono text-[11px] text-primary hover:underline"
-                  >
-                    {t("nodeDetail.viewOnMap")}
-                  </button>
-                )}
-              </Section>
-            )}
-
-            {node.meshmapper && <MeshMapperSection mm={node.meshmapper} />}
-
-            {showTelemetry ? (
-              <Suspense fallback={null}>
-                <NodeTelemetrySection key={node.id} node={node} onViewObserver={onViewObserver} extra={requestBlock} />
-              </Suspense>
-            ) : requestBlock && <Section title={t("nodeDetail.telemetry.title")}>{requestBlock}</Section>}
-
-            <Section title={t("nodeDetail.capabilities")}>
+            <Section title={t("nodeDetail.details")}>
+              {(hasLocation || node.locationSource) && (
+                <>
+                  <div className={SUBHEAD}>{t("nodeDetail.location")}</div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 font-mono text-[13px]">
+                    {hasLocation && <Field label={t("nodeDetail.lat")} value={node.lat!.toFixed(5)} />}
+                    {hasLocation && <Field label={t("nodeDetail.lng")} value={node.lng!.toFixed(5)} />}
+                    {node.locationSource && <Field label={t("nodeDetail.source")} value={node.locationSource} />}
+                  </div>
+                </>
+              )}
+              <div className={SUBHEAD}>{t("nodeDetail.capabilities")}</div>
               <div className="flex flex-col gap-0.5 font-mono text-[13px]">
                 {node.minFirmwareVersion && <Field label={t("nodeDetail.minFirmware")} value={node.minFirmwareVersion} />}
                 <Field label={t("nodeDetail.multibytePaths")} value={node.supportsMultibytePaths ? t("nodeDetail.yes") : t("nodeDetail.no")} />
@@ -200,9 +220,7 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                 {node.radio && <Field label={t("nodeDetail.radio")} value={formatRadio(node.radio) ?? "—"} />}
                 {node.defaultScope && <Field label={t("nodeDetail.scope")} value={node.defaultScope} />}
               </div>
-            </Section>
-
-            <Section title={t("nodeDetail.timestamps")}>
+              <div className={SUBHEAD}>{t("nodeDetail.timestamps")}</div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[13px]">
                 <Field label={t("nodeDetail.first")} value={<Timestamp value={node.firstSeen} />} />
                 <Field label={t("nodeDetail.last")} value={<Timestamp value={node.lastSeen} />} />
@@ -216,8 +234,17 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
               </div>
             </Section>
 
-            <Section title={node.knownNeighborCount > 0 ? t("nodeDetail.neighborsCount", { count: node.knownNeighborCount }) : t("nodeDetail.neighbors")}>
-              {neighbors && neighbors.length > 0 ? (
+            {node.meshmapper && <MeshMapperSection mm={node.meshmapper} />}
+
+            {showTelemetry ? (
+              <Suspense fallback={null}>
+                <NodeTelemetrySection key={node.id} node={node} onViewObserver={onViewObserver} extra={requestBlock} info={telemetryInfo} />
+              </Suspense>
+            ) : requestBlock && <FoldSection id="node-telemetry" title={t("nodeDetail.telemetry.title")} info={telemetryInfo}>{requestBlock}</FoldSection>}
+
+            <FoldSection id="node-neighbors" title={node.knownNeighborCount > 0 ? t("nodeDetail.neighborsCount", { count: node.knownNeighborCount }) : t("nodeDetail.neighbors")}>
+              {neighborsQuery.isError && <NodeQueryError section={t("nodeDetail.neighbors")} previousData={!!neighbors?.length} isFetching={neighborsQuery.isFetching} onRetry={() => void neighborsQuery.refetch()} />}
+              {neighborsQuery.isPending ? <p role="status" className="font-mono text-[13px] text-text-dim">{t("common.loading")}</p> : neighbors && neighbors.length > 0 ? (
                 <div className="flex flex-col gap-1.5">
                   {neighbors.map((n) => (
                     // the endpoint returns one row per (neighbor, iata), so the node id alone repeats
@@ -228,13 +255,19 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                     />
                   ))}
                 </div>
-              ) : (
+              ) : !neighborsQuery.isError && (
                 <div className="font-mono text-[13px] text-text-dim">{t("nodeDetail.noNeighbors")}</div>
               )}
-            </Section>
+            </FoldSection>
 
-            <Section title={t("nodeDetail.recentPackets")}>
-              {observations && observations.items.length > 0 ? (
+            <FoldSection
+              id="node-packets"
+              title={t("nodeDetail.recentPackets")}
+              info={[t("nodeDetail.packetsSentInfo"), t("nodeDetail.packetsSentExpire")]}
+              summary={observations && observations.items.length > 0 ? <Timestamp value={observations.items[0]!.heardAt} /> : undefined}
+            >
+              {observationsQuery.isError && <NodeQueryError section={t("nodeDetail.recentPackets")} previousData={!!observations?.items.length} isFetching={observationsQuery.isFetching} onRetry={() => void observationsQuery.refetch()} />}
+              {observationsQuery.isPending ? <p role="status" className="font-mono text-[13px] text-text-dim">{t("common.loading")}</p> : observations && observations.items.length > 0 ? (
                 <div className="flex flex-col gap-1.5">
                   {observations.items.map((obs) => (
                     <NodeObservationRow
@@ -244,10 +277,11 @@ export function NodeDetailPanel({ nodeId, onClose, onViewObserver, onViewNode, o
                     />
                   ))}
                 </div>
-              ) : (
+              ) : !observationsQuery.isError && (
                 <div className="font-mono text-[13px] text-text-dim">{t("nodeDetail.noRecentPackets")}</div>
               )}
-            </Section>
+            </FoldSection>
+
         </>
       )}
     </DetailPanel>
