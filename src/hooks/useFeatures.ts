@@ -11,11 +11,13 @@ export interface Features {
   alerts: boolean;
   atlasTelemetry: boolean;
   mapTelemetry: boolean;
-  alertDelivery: "push" | "email" | undefined;
+  alertChannels: { email: boolean; push: boolean };
+  // Servers from before the channel switches send no alertChannels and no overview channels.
+  alertChannelsSent: boolean;
   portalUrl?: string;
 }
 
-const OFF: Features = { polling: false, accounts: "off", registration: false, telemetryRequests: false, alerts: false, atlasTelemetry: false, mapTelemetry: false, alertDelivery: undefined };
+const OFF: Features = { polling: false, accounts: "off", registration: false, telemetryRequests: false, alerts: false, atlasTelemetry: false, mapTelemetry: false, alertChannels: { email: false, push: false }, alertChannelsSent: false };
 
 // Shares VersionGate's /info query. Until it loads, on an older server, or on a failure, every feature reads as off.
 function useInfo() {
@@ -44,7 +46,8 @@ export function useFeatures(): Features {
     alerts: f.alerts === true,
     atlasTelemetry: f.atlasTelemetry === true,
     mapTelemetry: f.mapTelemetry === true,
-    alertDelivery: f.alertDelivery === "push" || f.alertDelivery === "email" ? f.alertDelivery : undefined,
+    alertChannels: { email: f.alertChannels?.email === true, push: f.alertChannels?.push === true },
+    alertChannelsSent: typeof f.alertChannels === "object" && f.alertChannels !== null,
     portalUrl: typeof f.portalUrl === "string" && f.portalUrl !== "" ? f.portalUrl : undefined,
   };
 }

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useDisplayUnits, useFeatures, useFeaturesLoading } from "../../src/hooks/useFeatures";
 
-const OFF = { polling: false, accounts: "off", registration: false, telemetryRequests: false, alerts: false, atlasTelemetry: false, mapTelemetry: false };
+const OFF = { polling: false, accounts: "off", registration: false, telemetryRequests: false, alerts: false, atlasTelemetry: false, mapTelemetry: false, alertChannels: { email: false, push: false }, alertChannelsSent: false };
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 const stubInfo = (body: unknown, ok = true) =>
@@ -35,11 +35,26 @@ describe("useFeatures", () => {
   });
 
   it("returns the server's values when present", async () => {
-    const features = { polling: true, accounts: "local", registration: true, telemetryRequests: true, alerts: false, atlasTelemetry: true, mapTelemetry: true };
+    const features = { polling: true, accounts: "local", registration: true, telemetryRequests: true, alerts: true, atlasTelemetry: true, mapTelemetry: true, alertChannels: { email: false, push: true } };
     stubInfo({ serverVersion: "2.3.0", features });
     const { result } = renderHook(() => useFeatures(), { wrapper });
     await waitFor(() => expect(result.current.polling).toBe(true));
-    expect(result.current).toEqual(features);
+    expect(result.current).toEqual({ ...features, alertChannelsSent: true });
+  });
+
+  it("reads a missing or malformed alertChannels as both off", async () => {
+    stubInfo({ serverVersion: "2.3.0", features: { polling: true, alerts: true, alertChannels: { email: "yes" } } });
+    const { result } = renderHook(() => useFeatures(), { wrapper });
+    await waitFor(() => expect(result.current.polling).toBe(true));
+    expect(result.current.alertChannels).toEqual({ email: false, push: false });
+    expect(result.current.alertChannelsSent).toBe(true);
+  });
+
+  it("marks alertChannels as not sent when an older server leaves it out", async () => {
+    stubInfo({ serverVersion: "2.2.0", features: { polling: true, alerts: true } });
+    const { result } = renderHook(() => useFeatures(), { wrapper });
+    await waitFor(() => expect(result.current.polling).toBe(true));
+    expect(result.current.alertChannelsSent).toBe(false);
   });
 
   it("falls back to off for an accounts value it does not know", async () => {
